@@ -48,6 +48,9 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
   const [autoSyncEnabled, setAutoSyncEnabled] = useState(() => {
     return localStorage.getItem("ohara_autosync") !== "false";
   });
+  const [localApiKey, setLocalApiKey] = useState(() => {
+    return localStorage.getItem("ohara_gemini_api_key") || "";
+  });
 
   // --- Cloud Sync Simulation ---
   const [isCloudSyncing, setIsCloudSyncing] = useState(false);
@@ -870,6 +873,45 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
                     </div>
                   </label>
                 </div>
+              </div>
+
+              {/* Configuración de Clave API de Gemini de Respaldo */}
+              <div className="bg-slate-950/30 border border-slate-800/80 p-4 rounded-xl space-y-3">
+                <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                  <Key className="w-4 h-4 text-amber-500 animate-pulse" />
+                  Conexión de IA Descentralizada (Servidores Estáticos / Netlify)
+                </h3>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Si has desplegado este portal en un hosting estático (como <b>Netlify</b>, <b>Vercel</b> o <b>GitHub Pages</b>), las llamadas locales de API fallarán porque no hay un servidor Express corriendo. Introduce tu propia clave API de Gemini aquí para conectarte directamente y evadir las restricciones.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    placeholder="AIzaSy..."
+                    value={localApiKey}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setLocalApiKey(val);
+                      localStorage.setItem("ohara_gemini_api_key", val);
+                    }}
+                    className="flex-1 bg-slate-900 border border-slate-800 rounded-lg py-1.5 px-3 text-xs text-slate-100 placeholder-slate-700 outline-none focus:border-amber-500 font-mono"
+                  />
+                  {localApiKey && (
+                    <button
+                      onClick={() => {
+                        setLocalApiKey("");
+                        localStorage.removeItem("ohara_gemini_api_key");
+                        setSuccessMessage("Se ha eliminado la clave API local.");
+                      }}
+                      className="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[10px] text-rose-400 font-bold px-3 py-1.5 rounded-lg transition-all"
+                    >
+                      Limpiar
+                    </button>
+                  )}
+                </div>
+                <p className="text-[9px] text-slate-500 font-mono">
+                  * Tu clave API se guarda localmente en tu propio navegador y jamás se comparte con servidores externos.
+                </p>
               </div>
 
               {/* Physical Backup Operations (Export & Import) */}

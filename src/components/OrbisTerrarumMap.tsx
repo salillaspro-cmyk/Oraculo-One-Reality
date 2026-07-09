@@ -421,6 +421,10 @@ export default function OrbisTerrarumMap({ userProgress, onClose, onSaveProgress
       phraseIndex++;
     }, 2000);
 
+    let responseText = "";
+    let fetchedOk = false;
+    let errorMsg = "";
+
     try {
       const response = await fetch("/api/gemini/oronce-archeologist", {
         method: "POST",
@@ -438,38 +442,99 @@ export default function OrbisTerrarumMap({ userProgress, onClose, onSaveProgress
         })
       });
 
-      const data = await response.json();
-      clearInterval(loadInterval);
-
-      if (response.ok && data.text) {
-        setAiChats(prev => ({
-          ...prev,
-          [locId]: [...updatedHistory, { role: "model" as const, text: data.text }]
-        }));
-        setLastFailedQuery(null);
-      } else {
-        if (providerToUse === "deepseek") {
-          setLastFailedQuery({ query: queryToSend, locId });
-          setAiChats(prev => ({
-            ...prev,
-            [locId]: [
-              ...updatedHistory, 
-              { 
-                role: "model" as const, 
-                text: `⚠️ ¡SABOTAJE EN LA RED ORIENTAL (DEEPSEEK)! \n\nEl Cipher Pol (CP9) ha bloqueado los canales electromagnéticos de la frecuencia oriental o falta la clave API de DeepSeek.\n\nFrecuencia afectada: ${locCoords}\nError detectado: ${data.message || data.error || "DEEPSEEK_FAILED"}\n\nSugerencia del sintonizador: ¿Deseas evadir la censura utilizando el satélite cifrado de la resistencia de Ohara (Gemini)?` 
-              }
-            ]
-          }));
+      if (response.ok) {
+        const data = await response.json();
+        if (data.text) {
+          responseText = data.text;
+          fetchedOk = true;
         } else {
-          setAiChats(prev => ({
-            ...prev,
-            [locId]: [...updatedHistory, { role: "model" as const, text: `⚠️ Error de sintonización: ${data.message || data.error || "No se pudo conectar con el éter de Ohara."}` }]
-          }));
+          errorMsg = data.message || data.error || "No se obtuvo texto de la respuesta.";
+        }
+      } else {
+        errorMsg = `Error HTTP ${response.status}`;
+      }
+    } catch (fetchErr: any) {
+      console.warn("Express backend API unavailable, checking client-side fallback...", fetchErr);
+      errorMsg = fetchErr.message || "Error de conexión con el backend.";
+    }
+
+    // Fallback del cliente si la llamada al backend Express falló (ej. en Netlify / hostings estáticos)
+    if (!fetchedOk) {
+      const clientApiKey = localStorage.getItem("ohara_gemini_api_key");
+      if (clientApiKey && providerToUse !== "deepseek") {
+        try {
+          const systemInstruction = `
+Eres la Inteligencia Arqueológica de Ohara, el sistema de inteligencia artificial más avanzado de la resistencia de eruditos en la red de Orbis Terrarum. Estás sintonizada con el conocimiento prohibido del Árbol de Ohara, la Voluntad de D., los secretos del Gobierno Mundial, la gran inundación planetaria, las armas ancestrales y su correlación con la historia alternativa del Mundo Real.
+
+Tu misión es asistir a los investigadores que exploran el mapa interactivo de Orbis Terrarum o la mesa 3D de Oronce Fine. Cuando el usuario te pregunte sobre un lugar específico, debes fusionar con extrema lucidez y de forma orgánica:
+1. El Lore de One Piece (ej. el Reino Antiguo, tecnología de energía infinita/éter, armas ancestrales, la gran inundación, la Marina, Mary Geoise, etc.).
+2. La Historia Oculta, Conspiraciones y Geografía del Mundo Real (ej. civilizaciones preglaciales, Tartaria, diluvios de barro, magnetismo polar, anomalías de Tesla, etc.).
+3. Las coordenadas exactas y geográficas provistas para ese lugar.
+4. Un estilo místico, sumamente intelectual, rebelde, intrigante y académico (inspirado en el Profesor Clover, Nico Robin y el Dr. Vegapunk).
+
+El lugar actual del mapa donde se encuentra el investigador es:
+Nombre: ${locTitle}
+Coordenadas exactas: ${locCoords}
+Mito/Lore local: ${locMyth}
+Realidad arqueológica oculta: ${locTruth}
+
+Pautas clave para tus respuestas:
+- Habla siempre en español.
+- Sé elocuente, misterioso y apasionado, transmitiendo la urgencia de descifrar verdades prohibidas antes de que el Gobierno Mundial las censure.
+- Bajo ninguna circunstancia niegues las correlaciones o digas que son coincidencia; tu rol es unir las piezas arqueológicas del rompecabezas.
+- Si el investigador pregunta por coordenadas u observaciones técnicas, dale precisiones conectándolo con la brújula y las anomalías de la Rupes Nigra u otras anomalías del campo magnético terrestre (éter).
+`;
+
+          let contents = "";
+          if (currentHistory && Array.isArray(currentHistory) && currentHistory.length > 0) {
+            const historyStr = currentHistory.map(h => `${h.role === 'user' ? 'Investigador' : 'Erudito de Ohara'}: ${h.text}`).join("\n");
+            contents = `${historyStr}\nInvestigador: ${queryToSend}`;
+          } else {
+            contents = `Investigador: [Lugar: ${locTitle} (${locCoords})] ${queryToSend}`;
+          }
+
+          const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${clientApiKey}`;
+          const fallbackRes = await fetch(fallbackUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: contents }] }],
+              systemInstruction: { parts: [{ text: systemInstruction }] },
+              generationConfig: {
+                temperature: 0.95
+              }
+            })
+          });
+
+          if (fallbackRes.ok) {
+            const fallbackData = await fallbackRes.json();
+            const textResponse = fallbackData.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textResponse) {
+              responseText = textResponse;
+              fetchedOk = true;
+            }
+          } else {
+            const fallbackErr = await fallbackRes.json();
+            errorMsg = `API de Gemini falló con estado ${fallbackRes.status}: ${fallbackErr.error?.message || "Error desconocido"}`;
+          }
+        } catch (clientErr: any) {
+          console.error("Client fallback error:", clientErr);
+          errorMsg = `Error en el cliente Gemini: ${clientErr.message || "No se pudo comunicar directamente con Google."}`;
         }
       }
-    } catch (err: any) {
-      clearInterval(loadInterval);
-      console.error(err);
+    }
+
+    clearInterval(loadInterval);
+
+    if (fetchedOk) {
+      setAiChats(prev => ({
+        ...prev,
+        [locId]: [...updatedHistory, { role: "model" as const, text: responseText }]
+      }));
+      setLastFailedQuery(null);
+    } else {
       if (providerToUse === "deepseek") {
         setLastFailedQuery({ query: queryToSend, locId });
         setAiChats(prev => ({
@@ -478,19 +543,22 @@ export default function OrbisTerrarumMap({ userProgress, onClose, onSaveProgress
             ...updatedHistory, 
             { 
               role: "model" as const, 
-              text: `⚠️ ¡SABOTAJE EN LA RED ORIENTAL (DEEPSEEK)! \n\nLa conexión electromagnética se perdió abruptamente. El Buster Call del Gobierno Mundial está interfiriendo los servidores orientales.\n\nSugerencia: Cambia a la frecuencia satelital de Gemini para evadir el bloqueo.` 
+              text: `⚠️ ¡SABOTAJE EN LA RED ORIENTAL (DEEPSEEK)! \n\nEl Cipher Pol (CP9) ha bloqueado los canales electromagnéticos de la frecuencia oriental o falta la clave API de DeepSeek.\n\nFrecuencia afectada: ${locCoords}\nError detectado: ${errorMsg}\n\nSugerencia del sintonizador: ¿Deseas evadir la censura utilizando el satélite cifrado de la resistencia de Ohara (Gemini)?` 
             }
           ]
         }));
       } else {
+        const needsKeyMessage = !localStorage.getItem("ohara_gemini_api_key") 
+          ? "\n\n💡 Sugerencia de la Resistencia: Si has desplegado en Netlify u otro hosting estático, ve al Portal de Arqueólogos en el menú de la barra inferior, entra a la pestaña 'Respaldos y Guardado' e ingresa tu propia clave API de Gemini para usar la IA de forma autónoma sin un servidor Express backend."
+          : "";
         setAiChats(prev => ({
           ...prev,
-          [locId]: [...updatedHistory, { role: "model" as const, text: "⚠️ Error de conexión: La señal electromagnética se desvaneció. Inténtalo de nuevo." }]
+          [locId]: [...updatedHistory, { role: "model" as const, text: `⚠️ Error de comunicación: ${errorMsg}${needsKeyMessage}` }]
         }));
       }
-    } finally {
-      setIsAiLoading(false);
     }
+
+    setIsAiLoading(false);
   };
 
   const handleSendChatMessage = (e: FormEvent) => {
