@@ -198,7 +198,13 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      await sendEmailVerification(user);
+      // Intentar enviar verificación en segundo plano, pero no bloquear el registro si falla o tarda
+      try {
+        await sendEmailVerification(user);
+        setEmailVerificationSent(true);
+      } catch (emailErr) {
+        console.warn("No se pudo enviar el correo de verificación:", emailErr);
+      }
       
       const localStored = localStorage.getItem("ohara_user_progress");
       let initialProgress: UserProgress | null = null;
@@ -223,12 +229,8 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
       };
       
       await setDoc(doc(db, "users", user.uid), newProgress);
-      
-      setEmailVerificationSent(true);
-      setShowVerificationPending(true);
-      setSuccessMessage("¡Bitácora registrada con éxito! Hemos enviado un correo de confirmación. Por favor, confírmalo antes de iniciar sesión.");
-      
-      await signOut(auth);
+      onSaveProgress(newProgress);
+      setSuccessMessage("¡Bitácora creada con éxito! Sincronizando datos y guardando perfil...");
     } catch (err: any) {
       console.error("Error creating user:", err);
       if (err.code === "auth/email-already-in-use") {
@@ -266,14 +268,6 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      
-      if (!user.emailVerified) {
-        setErrorMessage("Tu correo electrónico aún no ha sido verificado. Por favor, confírmalo primero.");
-        setShowVerificationPending(true);
-        await signOut(auth);
-        setIsAuthenticating(false);
-        return;
-      }
       
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);

@@ -81,23 +81,19 @@ export default function App() {
     // Listen to Firebase Auth state
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        // Only load if email is verified, or if they logged in with Google (Google provider users are verified by default)
-        const isVerified = firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com");
-        if (isVerified) {
-          try {
-            const userDocRef = doc(db, "users", firebaseUser.uid);
-            const userDoc = await getDoc(userDocRef);
-            if (userDoc.exists()) {
-              const cloudProgress = userDoc.data() as UserProgress;
-              setUserProgress(cloudProgress);
-              localStorage.setItem("ohara_user_progress", JSON.stringify(cloudProgress));
-              // Dispatch event to update other parts of the UI
-              window.dispatchEvent(new Event("ohara_sync_progress_internal"));
-              return;
-            }
-          } catch (e) {
-            console.error("Error loading cloud progress", e);
+        try {
+          const userDocRef = doc(db, "users", firebaseUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const cloudProgress = userDoc.data() as UserProgress;
+            setUserProgress(cloudProgress);
+            localStorage.setItem("ohara_user_progress", JSON.stringify(cloudProgress));
+            // Dispatch event to update other parts of the UI
+            window.dispatchEvent(new Event("ohara_sync_progress_internal"));
+            return;
           }
+        } catch (e) {
+          console.error("Error loading cloud progress", e);
         }
       }
       // Fallback to local storage
@@ -111,8 +107,7 @@ export default function App() {
     // Listen to custom event to sync when OharaAcademy or Minigames update state
     const handleSync = () => {
       const firebaseUser = auth.currentUser;
-      const isVerified = firebaseUser && (firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com"));
-      if (!isVerified) {
+      if (!firebaseUser) {
         loadProgress();
       }
     };
@@ -141,10 +136,9 @@ export default function App() {
     localStorage.setItem("ohara_user_progress", JSON.stringify(updated));
     window.dispatchEvent(new Event("ohara_sync_progress"));
 
-    // Sync to Firestore if logged in and verified
+    // Sync to Firestore if logged in
     const firebaseUser = auth.currentUser;
-    const isVerified = firebaseUser && (firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com"));
-    if (isVerified) {
+    if (firebaseUser) {
       try {
         const userDocRef = doc(db, "users", firebaseUser.uid);
         await setDoc(userDocRef, updated, { merge: true });

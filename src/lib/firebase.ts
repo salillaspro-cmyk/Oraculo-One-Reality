@@ -30,7 +30,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
-const db = getFirestore(app);
+const db = getFirestore(app, "ai-studio-loretreegrandlin-c303bda7-ac5e-49de-8905-9d431ebace1b");
 
 export { 
   auth, 
