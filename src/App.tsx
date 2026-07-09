@@ -12,6 +12,7 @@ import OharaMinigames, { TreasureChestPanel, COMMON_GAMES, generateUniqueGame, A
 import { UserProgress } from "./data/courses";
 import OronceFineMap from "./components/OronceFineMap";
 import ArchaeologistPortal from "./components/ArchaeologistPortal";
+import { auth, db, onAuthStateChanged, doc, getDoc, setDoc } from "./lib/firebase";
 
 export default function App() {
   // Navigation / View State
@@ -77,22 +78,81 @@ export default function App() {
   };
 
   useEffect(() => {
-    loadProgress();
+    // Listen to Firebase Auth state
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Only load if email is verified, or if they logged in with Google (Google provider users are verified by default)
+        const isVerified = firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com");
+        if (isVerified) {
+          try {
+            const userDocRef = doc(db, "users", firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const cloudProgress = userDoc.data() as UserProgress;
+              setUserProgress(cloudProgress);
+              localStorage.setItem("ohara_user_progress", JSON.stringify(cloudProgress));
+              // Dispatch event to update other parts of the UI
+              window.dispatchEvent(new Event("ohara_sync_progress_internal"));
+              return;
+            }
+          } catch (e) {
+            console.error("Error loading cloud progress", e);
+          }
+        }
+      }
+      // Fallback to local storage
+      loadProgress();
+    });
 
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
     // Listen to custom event to sync when OharaAcademy or Minigames update state
-    const handleSync = () => loadProgress();
+    const handleSync = () => {
+      const firebaseUser = auth.currentUser;
+      const isVerified = firebaseUser && (firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com"));
+      if (!isVerified) {
+        loadProgress();
+      }
+    };
+    
+    const handleSyncInternal = () => {
+      const stored = localStorage.getItem("ohara_user_progress");
+      if (stored) {
+        try {
+          setUserProgress(JSON.parse(stored));
+        } catch (e) {}
+      }
+    };
+
     window.addEventListener("ohara_sync_progress", handleSync);
+    window.addEventListener("ohara_sync_progress_internal", handleSyncInternal);
     window.addEventListener("storage", handleSync);
     return () => {
       window.removeEventListener("ohara_sync_progress", handleSync);
+      window.removeEventListener("ohara_sync_progress_internal", handleSyncInternal);
       window.removeEventListener("storage", handleSync);
     };
   }, []);
 
-  const handleSaveProgress = (updated: UserProgress) => {
+  const handleSaveProgress = async (updated: UserProgress) => {
     setUserProgress(updated);
     localStorage.setItem("ohara_user_progress", JSON.stringify(updated));
     window.dispatchEvent(new Event("ohara_sync_progress"));
+
+    // Sync to Firestore if logged in and verified
+    const firebaseUser = auth.currentUser;
+    const isVerified = firebaseUser && (firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com"));
+    if (isVerified) {
+      try {
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        await setDoc(userDocRef, updated, { merge: true });
+        console.log("Cloud progress synced successfully to Firestore.");
+      } catch (e) {
+        console.error("Failed to sync progress to Firestore", e);
+      }
+    }
   };
 
   // --- HIDDEN GAMIFICATION TRIGGER ALGORITHM ---

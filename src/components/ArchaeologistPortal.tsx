@@ -1,9 +1,23 @@
 import { useState, useEffect, useRef, FormEvent, ChangeEvent } from "react";
 import { 
   User, Key, Shield, Download, Upload, RefreshCw, Trophy, BookOpen, Globe, 
-  Settings, CheckCircle2, AlertCircle, Trash2, Copy, Check, Info, Award, Cloud, FileCode, CheckSquare, X
+  Settings, CheckCircle2, AlertCircle, Trash2, Copy, Check, Info, Award, Cloud, FileCode, CheckSquare, X,
+  Mail, Lock, LogOut, Chrome
 } from "lucide-react";
 import { UserProgress, AVATARS } from "../data/courses";
+import { 
+  auth, 
+  db, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword, 
+  sendEmailVerification, 
+  signInWithPopup, 
+  GoogleAuthProvider,
+  signOut,
+  doc,
+  getDoc,
+  setDoc
+} from "../lib/firebase";
 
 // Predefined NPC scholars for the leaderboard to make the experience rich
 const PREDEFINED_SCHOLARS = [
@@ -35,6 +49,11 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
   // --- Login / Registration State ---
   const [usernameInput, setUsernameInput] = useState("");
   const [accessKey, setAccessKey] = useState("");
+  const [emailInput, setEmailInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState("");
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [emailVerificationSent, setEmailVerificationSent] = useState(false);
+  const [showVerificationPending, setShowVerificationPending] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState("robin");
   const [selectedRole, setSelectedRole] = useState("Arqueólogo");
   const [loginMode, setLoginMode] = useState<"register" | "login">("register");
@@ -88,87 +107,238 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
   };
 
   // --- Handlers for Login / Register ---
-  const handleAuthSubmit = (e: FormEvent) => {
+  const handleGoogleSignIn = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsAuthenticating(true);
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
+        let finalProgress: UserProgress;
+        
+        if (userDoc.exists()) {
+          finalProgress = userDoc.data() as UserProgress;
+          setSuccessMessage(`¡Conexión exitosa! Bienvenido de vuelta, ${finalProgress.username}.`);
+        } else {
+          const localStored = localStorage.getItem("ohara_user_progress");
+          let initialProgress: UserProgress | null = null;
+          if (localStored) {
+            try {
+              initialProgress = JSON.parse(localStored);
+            } catch (e) {}
+          }
+          
+          finalProgress = {
+            username: user.displayName || initialProgress?.username || user.email?.split("@")[0] || "Arqueólogo",
+            avatar: initialProgress?.avatar || "robin",
+            mode: initialProgress?.mode || "novice",
+            currentChapterId: initialProgress?.currentChapterId || "alabasta",
+            completedChapters: initialProgress?.completedChapters || [],
+            quizScores: initialProgress?.quizScores || {},
+            placementScore: initialProgress?.placementScore !== undefined ? initialProgress?.placementScore : null,
+            pirateCertified: !!initialProgress?.pirateCertified,
+            archaeologistCertified: !!initialProgress?.archaeologistCertified,
+            restorationPoints: initialProgress?.restorationPoints || 50,
+            discoveredTreasures: initialProgress?.discoveredTreasures || [],
+          };
+          
+          await setDoc(userDocRef, finalProgress);
+          setSuccessMessage(`¡Perfil de arqueólogo creado y vinculado con Google! Bienvenido, ${finalProgress.username}.`);
+        }
+        
+        onSaveProgress(finalProgress);
+      }
+    } catch (err: any) {
+      console.error("Error during Google Sign-In:", err);
+      if (err.code === "auth/popup-blocked") {
+        setErrorMessage("El navegador bloqueó la ventana emergente de Google. Por favor, permite las ventanas emergentes en tu navegador para iniciar sesión.");
+      } else {
+        setErrorMessage(`No se pudo conectar con Google: ${err.message || err}`);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
+  const handleEmailRegister = async (e: FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
-
+    
+    const email = emailInput.trim();
+    const password = passwordInput;
     const name = usernameInput.trim();
-    if (!name) {
-      setErrorMessage("Por favor, introduce un nombre de arqueólogo válido.");
+    
+    if (!email || !password || !name) {
+      setErrorMessage("Por favor, rellena todos los campos para crear tu bitácora.");
       return;
     }
-
+    
+    if (password.length < 6) {
+      setErrorMessage("La clave secreta debe tener al menos 6 caracteres por seguridad.");
+      return;
+    }
+    
     if (name.length < 3) {
       setErrorMessage("El nombre de arqueólogo debe tener al menos 3 caracteres.");
       return;
     }
-
-    // Get all registered accounts
-    let accounts: Record<string, { key: string; progress: UserProgress }> = {};
+    
+    setIsAuthenticating(true);
+    
     try {
-      const stored = localStorage.getItem("ohara_registered_users");
-      if (stored) accounts = JSON.parse(stored);
-    } catch (e) {}
-
-    const normalizedName = name.toLowerCase();
-
-    if (loginMode === "register") {
-      if (accounts[normalizedName]) {
-        setErrorMessage("Este nombre de arqueólogo ya está registrado en los Archivos de Ohara.");
-        return;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      await sendEmailVerification(user);
+      
+      const localStored = localStorage.getItem("ohara_user_progress");
+      let initialProgress: UserProgress | null = null;
+      if (localStored) {
+        try {
+          initialProgress = JSON.parse(localStored);
+        } catch (e) {}
       }
-
-      // Create new progress object
-      const initialProgress: UserProgress = {
+      
+      const newProgress: UserProgress = {
         username: name,
         avatar: selectedAvatar,
-        mode: "novice",
-        currentChapterId: "alabasta",
-        completedChapters: [],
-        quizScores: {},
-        placementScore: null,
-        pirateCertified: false,
-        archaeologistCertified: false,
-        restorationPoints: 50, // Starter bonus points
-        discoveredTreasures: [],
+        mode: initialProgress?.mode || "novice",
+        currentChapterId: initialProgress?.currentChapterId || "alabasta",
+        completedChapters: initialProgress?.completedChapters || [],
+        quizScores: initialProgress?.quizScores || {},
+        placementScore: initialProgress?.placementScore !== undefined ? initialProgress?.placementScore : null,
+        pirateCertified: !!initialProgress?.pirateCertified,
+        archaeologistCertified: !!initialProgress?.archaeologistCertified,
+        restorationPoints: initialProgress?.restorationPoints || 50,
+        discoveredTreasures: initialProgress?.discoveredTreasures || [],
       };
+      
+      await setDoc(doc(db, "users", user.uid), newProgress);
+      
+      setEmailVerificationSent(true);
+      setShowVerificationPending(true);
+      setSuccessMessage("¡Bitácora registrada con éxito! Hemos enviado un correo de confirmación. Por favor, confírmalo antes de iniciar sesión.");
+      
+      await signOut(auth);
+    } catch (err: any) {
+      console.error("Error creating user:", err);
+      if (err.code === "auth/email-already-in-use") {
+        setErrorMessage("Esta dirección de correo ya está registrada en los Archivos de Ohara.");
+      } else if (err.code === "auth/invalid-email") {
+        setErrorMessage("El formato de correo electrónico no es válido.");
+      } else if (err.code === "auth/weak-password") {
+        setErrorMessage("La clave secreta es muy débil.");
+      } else {
+        setErrorMessage(`Error al crear la cuenta: ${err.message || err}`);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
 
-      // Save user with key
-      accounts[normalizedName] = {
-        key: accessKey || "1531", // Default year of Oronce Fine Map
-        progress: initialProgress,
-      };
-
-      localStorage.setItem("ohara_registered_users", JSON.stringify(accounts));
-      onSaveProgress(initialProgress);
-      setSuccessMessage("¡Identidad de arqueólogo creada con éxito en el Registro de Ohara!");
-      setUsernameInput("");
-      setAccessKey("");
-    } else {
-      // Login mode
-      const userAccount = accounts[normalizedName];
-      if (!userAccount) {
-        setErrorMessage("No se encontró ningún arqueólogo con ese nombre.");
+  const handleEmailLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    setShowVerificationPending(false);
+    
+    const email = emailInput.trim();
+    const password = passwordInput;
+    
+    if (!email || !password) {
+      setErrorMessage("Por favor, introduce tu correo y clave secreta.");
+      return;
+    }
+    
+    setIsAuthenticating(true);
+    
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      if (!user.emailVerified) {
+        setErrorMessage("Tu correo electrónico aún no ha sido verificado. Por favor, confírmalo primero.");
+        setShowVerificationPending(true);
+        await signOut(auth);
+        setIsAuthenticating(false);
         return;
       }
-
-      const providedKey = accessKey || "1531";
-      if (userAccount.key !== providedKey) {
-        setErrorMessage("Clave de acceso incorrecta para esta bitácora.");
-        return;
+      
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const cloudProgress = userDoc.data() as UserProgress;
+        onSaveProgress(cloudProgress);
+        setSuccessMessage(`¡Bienvenido de vuelta, ${cloudProgress.username}! Sincronizando datos...`);
+      } else {
+        const fallbackProgress: UserProgress = {
+          username: user.email?.split("@")[0] || "Arqueólogo",
+          avatar: "robin",
+          mode: "novice",
+          currentChapterId: "alabasta",
+          completedChapters: [],
+          quizScores: {},
+          placementScore: null,
+          pirateCertified: false,
+          archaeologistCertified: false,
+          restorationPoints: 50,
+          discoveredTreasures: [],
+        };
+        await setDoc(userDocRef, fallbackProgress);
+        onSaveProgress(fallbackProgress);
+        setSuccessMessage(`¡Perfil inicial configurado! Bienvenido, ${fallbackProgress.username}.`);
       }
+    } catch (err: any) {
+      console.error("Login error:", err);
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setErrorMessage("Credenciales incorrectas. Comprueba tu dirección de correo y clave.");
+      } else if (err.code === "auth/too-many-requests") {
+        setErrorMessage("Demasiados intentos de acceso fallidos. Por favor, inténtalo de nuevo más tarde.");
+      } else {
+        setErrorMessage(`Error de conexión con Ohara: ${err.message || err}`);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
 
-      // Load progress
-      onSaveProgress(userAccount.progress);
-      setSuccessMessage(`¡Bienvenido de vuelta, ${userAccount.progress.username}! Sincronizando datos...`);
-      setUsernameInput("");
-      setAccessKey("");
+  const handleResendVerification = async () => {
+    setErrorMessage("");
+    setSuccessMessage("");
+    
+    const email = emailInput.trim();
+    const password = passwordInput;
+    
+    if (!email || !password) {
+      setErrorMessage("Para reenviar la verificación, por favor introduce primero tu correo y contraseña.");
+      return;
+    }
+    
+    setIsAuthenticating(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      await sendEmailVerification(user);
+      setSuccessMessage("¡Correo de verificación reenviado con éxito! Revisa tu bandeja de entrada.");
+      await signOut(auth);
+    } catch (err: any) {
+      console.error("Resend error:", err);
+      setErrorMessage(`No se pudo reenviar la verificación: ${err.message || err}`);
+    } finally {
+      setIsAuthenticating(false);
     }
   };
 
   // --- Change Avatar / Specialty Role ---
-  const handleUpdateMeta = (avatarId: string, role: string) => {
+  const handleUpdateMeta = async (avatarId: string, role: string) => {
     if (!userProgress) return;
     const updated: UserProgress = {
       ...userProgress,
@@ -176,8 +346,19 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
     };
     onSaveProgress(updated);
 
-    // Update inside stored accounts as well
-    updateStoredAccount(updated);
+    const firebaseUser = auth.currentUser;
+    const isVerified = firebaseUser && (firebaseUser.emailVerified || firebaseUser.providerData.some(p => p.providerId === "google.com"));
+    if (isVerified) {
+      try {
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        await setDoc(userDocRef, updated, { merge: true });
+        console.log("Profile updated successfully in Firestore.");
+      } catch (e) {
+        console.error("Failed to sync profile change", e);
+      }
+    } else {
+      updateStoredAccount(updated);
+    }
     setSuccessMessage("Perfil actualizado con éxito.");
   };
 
@@ -362,13 +543,18 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
   };
 
   // --- Logout ---
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (window.confirm("¿Seguro que deseas cerrar tu sesión cartográfica actual? Tu progreso local permanece guardado.")) {
-      localStorage.removeItem("ohara_user_progress");
-      // Trigger a sync event
-      window.dispatchEvent(new Event("ohara_sync_progress"));
-      setSuccessMessage("Sesión cerrada. Puedes volver a identificarte cuando quieras.");
-      onClose();
+      try {
+        await signOut(auth);
+        localStorage.removeItem("ohara_user_progress");
+        // Trigger a sync event
+        window.dispatchEvent(new Event("ohara_sync_progress"));
+        setSuccessMessage("Sesión cerrada. Puedes volver a identificarte cuando quieras.");
+        onClose();
+      } catch (err: any) {
+        setErrorMessage(`Error al cerrar sesión: ${err.message}`);
+      }
     }
   };
 
@@ -568,51 +754,75 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
                   <div className="md:col-span-3 bg-slate-950/30 border border-slate-800/80 p-5 rounded-xl space-y-4">
                     <div className="flex border-b border-slate-800 pb-2 mb-2 gap-4">
                       <button
-                        onClick={() => { setLoginMode("register"); setErrorMessage(""); setSuccessMessage(""); }}
+                        type="button"
+                        onClick={() => { setLoginMode("register"); setErrorMessage(""); setSuccessMessage(""); setShowVerificationPending(false); }}
                         className={`text-xs font-bold pb-2 border-b-2 transition-all ${
                           loginMode === "register" ? "border-indigo-500 text-indigo-400" : "text-slate-500 hover:text-slate-300"
                         }`}
+                        disabled={isAuthenticating}
                       >
                         Crear Bitácora
                       </button>
                       <button
-                        onClick={() => { setLoginMode("login"); setErrorMessage(""); setSuccessMessage(""); }}
+                        type="button"
+                        onClick={() => { setLoginMode("login"); setErrorMessage(""); setSuccessMessage(""); setShowVerificationPending(false); }}
                         className={`text-xs font-bold pb-2 border-b-2 transition-all ${
                           loginMode === "login" ? "border-indigo-500 text-indigo-400" : "text-slate-500 hover:text-slate-300"
                         }`}
+                        disabled={isAuthenticating}
                       >
                         Identificarse
                       </button>
                     </div>
 
-                    <form onSubmit={handleAuthSubmit} className="space-y-4">
+                    <form onSubmit={loginMode === "register" ? handleEmailRegister : handleEmailLogin} className="space-y-4">
+                      {loginMode === "register" && (
+                        <div className="space-y-1.5">
+                          <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nombre del Arqueólogo</label>
+                          <div className="relative">
+                            <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                            <input
+                              type="text"
+                              placeholder="Ej. Clover, Olvia, Vegapunk..."
+                              value={usernameInput}
+                              onChange={(e) => setUsernameInput(e.target.value)}
+                              disabled={isAuthenticating}
+                              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500 disabled:opacity-50"
+                            />
+                          </div>
+                        </div>
+                      )}
+
                       <div className="space-y-1.5">
-                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nombre del Arqueólogo</label>
+                        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Correo Electrónico</label>
                         <div className="relative">
-                          <User className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                          <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                           <input
-                            type="text"
-                            placeholder="Ej. Clover, Olvia, Vegapunk..."
-                            value={usernameInput}
-                            onChange={(e) => setUsernameInput(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500"
+                            type="email"
+                            placeholder="arqueologo@ohara.org"
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            disabled={isAuthenticating}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500 disabled:opacity-50"
+                            required
                           />
                         </div>
                       </div>
 
                       <div className="space-y-1.5">
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider flex justify-between items-center">
-                          <span>Clave de Acceso Secreta</span>
-                          <span className="text-[9px] text-slate-600 lowercase">(Opcional, por defecto "1531")</span>
+                          <span>Clave Secreta de Acceso</span>
                         </label>
                         <div className="relative">
-                          <Key className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                          <Lock className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                           <input
                             type="password"
-                            placeholder="Introduce un PIN o clave privada"
-                            value={accessKey}
-                            onChange={(e) => setAccessKey(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500"
+                            placeholder="Mínimo 6 caracteres"
+                            value={passwordInput}
+                            onChange={(e) => setPasswordInput(e.target.value)}
+                            disabled={isAuthenticating}
+                            className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 pl-9 pr-4 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500 disabled:opacity-50"
+                            required
                           />
                         </div>
                       </div>
@@ -627,11 +837,12 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
                                   key={av.id}
                                   type="button"
                                   onClick={() => setSelectedAvatar(av.id)}
+                                  disabled={isAuthenticating}
                                   className={`p-2 rounded-lg border flex flex-col items-center gap-1 transition-all ${
                                     selectedAvatar === av.id
                                       ? "bg-indigo-950/40 border-indigo-500 text-slate-200"
                                       : "bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700"
-                                  }`}
+                                  } disabled:opacity-50`}
                                   title={av.name}
                                 >
                                   <span className="text-xl">{av.icon}</span>
@@ -646,7 +857,8 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
                             <select
                               value={selectedRole}
                               onChange={(e) => setSelectedRole(e.target.value)}
-                              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 outline-none focus:border-indigo-500"
+                              disabled={isAuthenticating}
+                              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-xs text-slate-100 outline-none focus:border-indigo-500 disabled:opacity-50"
                             >
                               {ROLES_LIST.map((role) => (
                                 <option key={role} value={role}>{role}</option>
@@ -656,13 +868,66 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
                         </>
                       )}
 
+                      {showVerificationPending && (
+                        <div className="p-3 bg-amber-950/30 border border-amber-500/20 text-amber-300 rounded-lg space-y-2 text-[11px]">
+                          <p className="flex items-center gap-1.5 font-semibold">
+                            <AlertCircle className="w-4 h-4 text-amber-400" />
+                            Verificación de correo electrónico pendiente
+                          </p>
+                          <p>
+                            Por favor, confirma el enlace que enviamos a tu bandeja de entrada antes de continuar.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={handleResendVerification}
+                            disabled={isAuthenticating}
+                            className="w-full bg-amber-600 hover:bg-amber-500 text-slate-950 py-1 rounded font-bold transition-all disabled:opacity-50"
+                          >
+                            Reenviar Correo de Confirmación
+                          </button>
+                        </div>
+                      )}
+
                       <button
                         type="submit"
-                        className="w-full mt-2 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-slate-100 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-950/50 flex justify-center items-center gap-2 cursor-pointer"
+                        disabled={isAuthenticating}
+                        className="w-full mt-2 bg-indigo-600 hover:bg-indigo-500 text-slate-100 py-2 rounded-lg text-xs font-bold transition-all shadow-lg shadow-indigo-950/50 flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
                       >
-                        {loginMode === "register" ? "Registrar Nueva Bitácora" : "Iniciar Sesión en Ohara"}
+                        {isAuthenticating ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Procesando solicitud...</span>
+                          </>
+                        ) : loginMode === "register" ? (
+                          "Registrar Nueva Bitácora (Enviar Verificación)"
+                        ) : (
+                          "Iniciar Sesión con Correo"
+                        )}
                       </button>
                     </form>
+
+                    {/* Google Sign-In Integration */}
+                    <div className="space-y-4 pt-3 border-t border-slate-800/80">
+                      <div className="relative flex py-1 items-center">
+                        <div className="flex-grow border-t border-slate-800/80"></div>
+                        <span className="flex-shrink mx-3 text-[10px] text-slate-500 uppercase font-bold tracking-wider">o conéctate con</span>
+                        <div className="flex-grow border-t border-slate-800/80"></div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={isAuthenticating}
+                        className="w-full bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg py-2 text-xs font-semibold text-slate-200 transition-all flex justify-center items-center gap-2 cursor-pointer disabled:opacity-50"
+                      >
+                        {isAuthenticating ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Chrome className="w-4 h-4 text-red-500" />
+                        )}
+                        <span>Acceder de forma directa con Google (Gmail)</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (
