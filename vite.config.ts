@@ -21,20 +21,17 @@ export default defineConfig(() => {
       chunkSizeWarningLimit: 1200,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('scheduler')) {
-                return 'vendor-react';
-              }
-              if (id.includes('lucide-react')) {
-                return 'vendor-icons';
-              }
-              if (id.includes('motion') || id.includes('framer-motion')) {
-                return 'vendor-motion';
-              }
-              return 'vendor-others';
-            }
-          },
+   manualChunks(id) {
+  if (id.includes('node_modules')) {
+    if (id.includes('react') || id.includes('scheduler') || id.includes('motion') || id.includes('framer-motion')) {
+      return 'vendor-react';
+    }
+    if (id.includes('lucide-react')) {
+      return 'vendor-icons';
+    }
+    return 'vendor-others';
+  }
+},
         },
       },
     },
