@@ -1,0 +1,6 @@
+{
+  "name": "Mapa de Talentos One Piece y Mundo Real",
+  "description": "Un mapa interactivo estilo árbol de talentos de RPG que conecta teorías y misterios de One Piece con conspiraciones e historia oculta del mundo real.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
