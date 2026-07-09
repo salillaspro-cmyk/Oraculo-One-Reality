@@ -1,13 +1,1659 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Oráculo de Verdades Paralelas - Mapa de Talentos Interactivo</title>
+  <!-- Tailwind CSS Play CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Space Grotesk', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          animation: {
+            'target-pulse': 'targetPulse 2s infinite ease-out',
+            'slow-spin': 'spin 20s infinite linear',
+          },
+          keyframes: {
+            targetPulse: {
+              '0%': { transform: 'scale(0.8) rotate(0deg)', opacity: '0' },
+              '50%': { opacity: '0.8' },
+              '100%': { transform: 'scale(1.4) rotate(180deg)', opacity: '0' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Styling overrides and background grid */
+    .grid-bg {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(30, 41, 59, 0.15) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(30, 41, 59, 0.15) 1px, transparent 1px);
+    }
+    
+    .grid-bg-dots {
+      background-image: radial-gradient(rgba(51, 65, 85, 0.2) 1.5px, transparent 1.5px);
+      background-size: 20px 20px;
+    }
 
+    /* Hide scrollbars but preserve scrolling */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+
+    /* Animation effects */
+    .animate-target-pulse {
+      animation: targetPulse 2s infinite ease-out;
+    }
+    
+    @keyframes targetPulse {
+      0% { r: 24px; opacity: 0; stroke-width: 3px; }
+      50% { opacity: 0.9; }
+      100% { r: 50px; opacity: 0; stroke-width: 1px; }
+    }
+
+    .node-glow-grand_line { filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.4)); }
+    .node-glow-mundo_real { filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.4)); }
+    .node-glow-puentes { filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.4)); }
+    .node-glow-cuestiones { filter: drop-shadow(0 0 12px rgba(167, 139, 250, 0.4)); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 overflow-hidden font-sans h-screen w-screen flex flex-col relative select-none">
+
+  <!-- ================= BACKGROUND LAYER ================= -->
+  <div class="absolute inset-0 grid-bg pointer-events-none z-0"></div>
+  <div class="absolute inset-0 grid-bg-dots pointer-events-none z-0"></div>
+
+  <!-- ================= HEADER / TOP HUD ================= -->
+  <header class="w-full z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-4 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="p-2 bg-sky-500/10 rounded-lg border border-sky-500/20 shadow-md">
+        <!-- SVG Compass icon inside single file for zero dependency -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-sky-400 animate-[spin_10s_infinite_linear]"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg md:text-xl font-display font-extrabold tracking-tight bg-gradient-to-r from-sky-400 via-emerald-300 to-amber-300 bg-clip-text text-transparent uppercase">
+          ORÁCULO DE VERDADES PARALELAS
+        </h1>
+        <p class="text-[10px] md:text-xs font-mono text-slate-400 tracking-wider">
+          MÁSTIL DE CONVERGENCIA COGNITIVA: CANON ANCESTRAL Y HISTORIA REAL
+        </p>
+      </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="flex flex-wrap items-center gap-2 max-w-full">
+      <!-- Search Input -->
+      <div class="relative w-full sm:w-48 md:w-56">
+        <input 
+          id="search-input"
+          type="text" 
+          placeholder="Buscar misterio o pista..." 
+          class="w-full pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-800 focus:border-sky-500 rounded text-xs font-mono text-slate-100 placeholder-slate-500 outline-none transition-colors"
+        />
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="absolute left-2.5 top-2.5 text-slate-500"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </div>
+
+      <!-- Filter Category -->
+      <select 
+        id="category-filter"
+        class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 px-2 py-1.5 rounded outline-none cursor-pointer hover:border-slate-700 transition-colors"
+      >
+        <option value="all">Todas las Islas</option>
+        <option value="grand_line">Isla Grand Line</option>
+        <option value="mundo_real">Isla Mundo Real</option>
+        <option value="puentes">Archipiélago Puentes</option>
+        <option value="cuestiones">Isla Meta-Cuestiones</option>
+      </select>
+
+      <!-- Filter Level -->
+      <select 
+        id="level-filter"
+        class="bg-slate-900 border border-slate-800 text-xs font-mono text-slate-300 px-2 py-1.5 rounded outline-none cursor-pointer hover:border-slate-700 transition-colors"
+      >
+        <option value="all">Todos los Niveles</option>
+        <option value="1">Nivel 1: Periferia</option>
+        <option value="2">Nivel 2: Desvelado</option>
+        <option value="3">Nivel 3: El Núcleo</option>
+        <option value="4">Nivel 4: Maestría Inicial</option>
+        <option value="5">Nivel 5: Maestría Absoluta</option>
+      </select>
+
+      <!-- Help Button -->
+      <button 
+        id="btn-help"
+        class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 cursor-pointer transition-colors"
+        title="Mostrar Manual"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= INTERACTIVE WORKSPACE MAP CONTAINER ================= -->
+  <main id="map-container" class="flex-1 w-full relative overflow-hidden cursor-grab active:cursor-grabbing bg-[#02040a]">
+    
+    <!-- SVG Canvas -->
+    <svg 
+      id="svg-canvas" 
+      class="w-full h-full absolute inset-0 select-none pointer-events-none"
+      viewBox="0 0 1600 1000"
+    >
+      <defs>
+        <!-- Gradients -->
+        <radialGradient id="grad-island-grandline" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#0284c7" stop-opacity="0.12" />
+          <stop offset="70%" stop-color="#0369a1" stop-opacity="0.04" />
+          <stop offset="100%" stop-color="#0284c7" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="grad-island-mundoreal" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#d97706" stop-opacity="0.1" />
+          <stop offset="75%" stop-color="#b45309" stop-opacity="0.03" />
+          <stop offset="100%" stop-color="#d97706" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="grad-island-puentes" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#059669" stop-opacity="0.1" />
+          <stop offset="75%" stop-color="#047857" stop-opacity="0.03" />
+          <stop offset="100%" stop-color="#059669" stop-opacity="0" />
+        </radialGradient>
+        <radialGradient id="grad-island-cuestiones" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.1" />
+          <stop offset="75%" stop-color="#6d28d9" stop-opacity="0.03" />
+          <stop offset="100%" stop-color="#7c3aed" stop-opacity="0" />
+        </radialGradient>
+
+        <filter id="master-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="8" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+
+      <!-- Viewport group which will be translated/scaled in JS -->
+      <g id="map-viewport" style="transform-origin: 0px 0px; transition: transform 0.1s ease-out; pointer-events: auto;">
+        
+        <!-- ================= MAP EXTRA DECORATIVE GRAPHICS ================= -->
+        <!-- Center Compass Rose / Oráculo Star -->
+        <g id="center-compass" transform="translate(700, 320)">
+          <circle cx="0" cy="0" r="110" fill="none" stroke="#1e293b" stroke-width="1" />
+          <circle cx="0" cy="0" r="75" fill="none" stroke="#334155" stroke-width="0.5" stroke-dasharray="3, 3" />
+          <circle cx="0" cy="0" r="40" fill="none" stroke="#334155" stroke-width="0.5" />
+          <!-- Points -->
+          <polygon points="0,-90 6,-15 0,0" fill="#38bdf8" stroke="#1e293b" />
+          <polygon points="0,-90 -6,-15 0,0" fill="#0c4a6e" stroke="#1e293b" />
+          
+          <polygon points="0,90 6,15 0,0" fill="#fbbf24" stroke="#1e293b" />
+          <polygon points="0,90 -6,15 0,0" fill="#78350f" stroke="#1e293b" />
+          
+          <polygon points="90,0 15,6 0,0" fill="#34d399" stroke="#1e293b" />
+          <polygon points="90,0 15,-6 0,0" fill="#064e3b" stroke="#1e293b" />
+
+          <polygon points="-90,0 -15,6 0,0" fill="#a78bfa" stroke="#1e293b" />
+          <polygon points="-90,0 -15,-6 0,0" fill="#581c87" stroke="#1e293b" />
+          
+          <text x="0" y="-100" text-anchor="middle" class="text-xs font-mono font-bold fill-sky-400">N</text>
+          <text x="0" y="112" text-anchor="middle" class="text-xs font-mono font-bold fill-amber-400">S</text>
+          <text x="105" y="4" text-anchor="middle" class="text-xs font-mono font-bold fill-emerald-400">E</text>
+          <text x="-105" y="4" text-anchor="middle" class="text-xs font-mono font-bold fill-purple-400">W</text>
+        </g>
+
+        <!-- ================= ISLANDS BACKGROUND VISUAL SHAPES ================= -->
+        <!-- Isla 1 (Grand Line) -->
+        <g transform="translate(350, 250)">
+          <path d="M -260,0 C -260,-120 -150,-210 0,-210 C 150,-210 260,-120 260,0 C 260,100 170,160 0,160 C -170,160 -260,100 -260,0 Z" fill="url(#grad-island-grandline)" />
+          <text x="0" y="-160" text-anchor="middle" class="text-[13px] font-mono font-bold fill-sky-400/80 tracking-widest uppercase">🏴‍☠️ ISLA DEL GRAND LINE</text>
+          <text x="0" y="-145" text-anchor="middle" class="text-[9px] font-mono fill-sky-500/50 tracking-wider">CANON ONE PIECE - CÓDICE ANCESTRAL</text>
+        </g>
+
+        <!-- Isla 2 (Mundo Real) -->
+        <g transform="translate(1050, 250)">
+          <path d="M -300,0 C -300,-150 -150,-230 0,-230 C 150,-230 300,-150 300,0 C 300,160 170,220 0,220 C -170,220 -300,160 -300,0 Z" fill="url(#grad-island-mundoreal)" />
+          <text x="0" y="-180" text-anchor="middle" class="text-[13px] font-mono font-bold fill-amber-400/80 tracking-widest uppercase">🌍 ISLA DEL MUNDO REAL</text>
+          <text x="0" y="-165" text-anchor="middle" class="text-[9px] font-mono fill-amber-500/50 tracking-wider">CONSPIRACIONES, HISTORIA Y CIENCIA OCULTA</text>
+        </g>
+
+        <!-- Isla 3 (Puentes) -->
+        <g transform="translate(700, 600)">
+          <path d="M -220,0 C -220,-110 -130,-170 0,-170 C 130,-170 220,-110 220,0 C 220,130 130,200 0,200 C -130,200 -220,130 -220,0 Z" fill="url(#grad-island-puentes)" />
+          <text x="0" y="150" text-anchor="middle" class="text-[13px] font-mono font-bold fill-emerald-400/80 tracking-widest uppercase">🌉 ARCHIPIÉLAGO DE LOS PUENTES</text>
+          <text x="0" y="165" text-anchor="middle" class="text-[9px] font-mono fill-emerald-500/50 tracking-wider">NEXOS DE UNIFICACIÓN DE NARRATIVAS</text>
+        </g>
+
+        <!-- Isla 4 (Meta-Cuestiones) -->
+        <g transform="translate(1250, 680)">
+          <path d="M -150,0 C -150,-80 -80,-120 0,-120 C 80,-120 150,-80 150,0 C 150,80 80,120 0,120 C -80,120 -150,80 -150,0 Z" fill="url(#grad-island-cuestiones)" />
+          <text x="0" y="-85" text-anchor="middle" class="text-[12px] font-mono font-bold fill-purple-400/80 tracking-widest uppercase">🔮 ISLA DE LAS CUESTIONES</text>
+          <text x="0" y="-70" text-anchor="middle" class="text-[9px] font-mono fill-purple-500/50 tracking-wider">META-ANÁLISIS COGNITIVO</text>
+        </g>
+
+        <!-- ================= MARITIME ROUTES ================= -->
+        <path d="M 350 250 Q 500 450 700 550" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="5, 10" fill="none" opacity="0.25" />
+        <path d="M 1050 250 Q 900 450 700 550" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="5, 10" fill="none" opacity="0.25" />
+        <path d="M 350 250 Q 700 80 1050 250" stroke="#a78bfa" stroke-width="2.5" stroke-dasharray="4, 12" fill="none" opacity="0.2" />
+        <path d="M 700 690 Q 950 740 1250 680" stroke="#a78bfa" stroke-width="2.5" stroke-dasharray="4, 12" fill="none" opacity="0.2" />
+
+        <!-- Nodes group container (populated dynamically in JS) -->
+        <g id="nodes-group"></g>
+      </g>
+    </svg>
+  </main>
+
+  <!-- ================= MAP OVERLAY CONTROLS (BOTTOM LEFT) ================= -->
+  <div class="absolute bottom-6 left-6 z-10 flex flex-col sm:flex-row items-center gap-2 bg-slate-950/80 backdrop-blur-md p-2 rounded-lg border border-slate-800/80">
+    <div class="flex items-center gap-1">
+      <button id="btn-zoom-in" class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors" title="Acercar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button id="btn-zoom-out" class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors" title="Alejar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+      </button>
+      <button id="btn-fit" class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors" title="Ajustar">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+      </button>
+      <button id="btn-reset" class="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded text-slate-300 transition-colors" title="Restaurar Vista">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+      </button>
+    </div>
+    <span class="hidden sm:inline w-[1px] h-4 bg-slate-800"></span>
+    <div class="text-[10px] font-mono text-slate-400 flex items-center gap-1.5 px-1">
+      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2" class="animate-spin" style="animation-duration: 10s;"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+      <span>Arrastra para mover • Zoom: <span id="zoom-percent">100</span>%</span>
+    </div>
+  </div>
+
+  <!-- ================= DETAILED SIDE PANEL (DRAWER) ================= -->
+  <aside 
+    id="side-drawer"
+    class="absolute top-0 right-0 h-full z-30 w-full md:w-[480px] bg-slate-950/95 border-l border-slate-800/80 backdrop-blur-lg flex flex-col shadow-2xl transition-all duration-300 transform translate-x-full overflow-hidden"
+  >
+    <!-- Drawer Header -->
+    <div class="relative p-6 border-b border-slate-800/80 bg-slate-950/80 flex flex-col gap-2.5">
+      <div class="flex items-center justify-between">
+        <button id="btn-close-drawer" class="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-100 uppercase tracking-widest cursor-pointer transition-colors">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-1"><polyline points="15 18 9 12 15 6"/></svg>
+          Cerrar Panel
+        </button>
+        <button id="btn-close-cross" class="p-1.5 hover:bg-slate-900 border border-transparent hover:border-slate-800 rounded text-slate-400 hover:text-slate-200">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 mt-2">
+        <span id="drawer-category" class="text-[10px] font-mono font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full border"></span>
+        <span class="text-[10px] font-mono text-slate-500">•</span>
+        <span id="drawer-levelname" class="text-[10px] font-mono text-slate-400 uppercase tracking-wider"></span>
+      </div>
+
+      <h2 id="drawer-title" class="text-xl md:text-2xl font-bold text-slate-100 tracking-tight flex items-center gap-2"></h2>
+
+      <p id="drawer-summary" class="text-xs text-slate-400 leading-relaxed italic bg-slate-900/50 p-2.5 rounded border border-slate-850"></p>
+
+      <!-- Progress bar -->
+      <div class="mt-2 space-y-1">
+        <div class="flex justify-between text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+          <span>Progreso de Revelación</span>
+          <span id="drawer-progress-text" class="font-bold text-slate-300"></span>
+        </div>
+        <div id="drawer-progress-bar" class="flex items-center gap-1.5"></div>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+      <section class="space-y-2.5">
+        <h3 class="text-xs font-mono font-extrabold tracking-wider text-sky-400 uppercase flex items-center gap-2 pb-1 border-b border-sky-950/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z"/><path d="M12 14a8 8 0 0 0-8 8h16a8 8 0 0 0-8-8z"/></svg>
+          📖 En One Piece (Ficción)
+        </h3>
+        <p id="drawer-in-onepiece" class="text-xs text-slate-300 leading-relaxed bg-sky-950/10 p-3 rounded border border-sky-950/30"></p>
+      </section>
+
+      <section class="space-y-2.5">
+        <h3 class="text-xs font-mono font-extrabold tracking-wider text-amber-400 uppercase flex items-center gap-2 pb-1 border-b border-amber-950/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          🌍 En el Mundo Real (Historia / Conspiración)
+        </h3>
+        <p id="drawer-in-realworld" class="text-xs text-slate-300 leading-relaxed bg-amber-950/10 p-3 rounded border border-amber-950/30"></p>
+      </section>
+
+      <section class="space-y-2.5">
+        <h3 class="text-xs font-mono font-extrabold tracking-wider text-emerald-400 uppercase flex items-center gap-2 pb-1 border-b border-emerald-950/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          🔍 Evidencias y Pistas Clave
+        </h3>
+        <ul id="drawer-evidences" class="space-y-2"></ul>
+      </section>
+
+      <section class="space-y-2.5">
+        <h3 class="text-xs font-mono font-extrabold tracking-wider text-purple-400 uppercase flex items-center gap-2 pb-1 border-b border-purple-950/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          🔗 Conexiones Cruzadas (Puente Multidisciplinar)
+        </h3>
+        <div id="drawer-connections" class="grid grid-cols-1 gap-2"></div>
+      </section>
+
+      <section class="p-3.5 bg-red-950/20 border border-red-900/40 rounded-lg space-y-1.5">
+        <div class="flex items-center gap-2 text-xs font-mono font-bold text-red-400 uppercase tracking-wider">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Nota Crítica de Seguridad
+        </div>
+        <p id="drawer-critical-note" class="text-[11px] text-red-200/90 leading-relaxed"></p>
+      </section>
+
+      <div id="drawer-tags" class="pt-2 flex flex-wrap gap-1.5"></div>
+    </div>
+  </aside>
+
+  <!-- ================= INSTRUCTIONS MANUAL / INTRO MODAL ================= -->
+  <div id="help-modal" class="absolute inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+    <div class="w-full max-w-2xl bg-slate-900/95 border border-slate-800 rounded-xl p-6 md:p-8 shadow-2xl shadow-black relative flex flex-col gap-4 overflow-y-auto max-h-[90vh]">
+      <button id="btn-close-modal" class="absolute top-4 right-4 p-1.5 hover:bg-slate-800 border border-transparent hover:border-slate-700 rounded text-slate-400 hover:text-slate-200 cursor-pointer">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+
+      <div class="flex items-center gap-3 border-b border-slate-800 pb-4">
+        <div class="p-2.5 bg-sky-500/10 rounded-lg text-sky-400 border border-sky-500/30">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sky-400 animate-spin" style="animation-duration: 12s;"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+        </div>
+        <div>
+          <h3 class="text-lg md:text-xl font-display font-extrabold bg-gradient-to-r from-sky-400 to-amber-300 bg-clip-text text-transparent uppercase">
+            MANUAL DEL DESCUBRIDOR
+          </h3>
+          <p class="text-xs font-mono text-slate-400">
+            Guía de navegación del Oráculo de Verdades Paralelas (Autocontenido)
+          </p>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-xs md:text-sm text-slate-300 leading-relaxed">
+        <p>
+          Bienvenido al <strong>Oráculo Oculto</strong>, un mapa interactivo diseñado estilo árbol de talentos RPG (inspirado en Skyrim y Path of Exile). Este mapa traza un puente reflexivo, histórico y geopolítico entre el canon de misterios del manga <strong>One Piece</strong> (de Eiichiro Oda) y las teorías, enigmas y supresiones arqueológicas de nuestro <strong>Mundo Real</strong>.
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div class="p-4 bg-slate-950/50 border border-slate-800/80 rounded-lg space-y-2">
+            <h4 class="font-bold text-sky-400 flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="2" y1="14" x2="6" y2="14"/><line x1="10" y1="8" x2="14" y2="8"/><line x1="18" y1="16" x2="22" y2="16"/></svg>
+              Controles del Mapa
+            </h4>
+            <ul class="space-y-1.5 text-xs text-slate-400 font-mono">
+              <li>• <strong class="text-slate-300">Arrastrar:</strong> Clic izquierdo + mover ratón para desplazarte.</li>
+              <li>• <strong class="text-slate-300">Zoom:</strong> Usa la rueda del ratón o los botones (+/-) abajo a la izquierda.</li>
+              <li>• <strong class="text-slate-300">Explorar:</strong> Haz clic en cualquier nodo para abrir su panel.</li>
+              <li>• <strong class="text-slate-300">Buscar:</strong> Filtra arriba por palabras clave o categorías.</li>
+            </ul>
+          </div>
+
+          <div class="p-4 bg-slate-950/50 border border-slate-800/80 rounded-lg space-y-2">
+            <h4 class="font-bold text-amber-400 flex items-center gap-1.5">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+              Familias / Islas
+            </h4>
+            <ul class="space-y-1.5 text-xs text-slate-400 font-mono">
+              <li>• <span class="text-sky-400">🏴‍☠️ GRAND LINE:</span> Canon, misterios del universo de One Piece.</li>
+              <li>• <span class="text-amber-400">🌍 MUNDO REAL:</span> Hechos geopolíticos y megalitismo silenciado.</li>
+              <li>• <span class="text-emerald-400">🌉 PUENTES:</span> Nodos de confluencia y unificación cognitiva.</li>
+              <li>• <span class="text-purple-400">🔮 META:</span> Cuestionamiento y sesgo epistemológico de patrones.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="p-4 bg-sky-950/10 border border-sky-900/30 rounded-lg space-y-2">
+          <h4 class="font-bold text-sky-300 flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            Las Conexiones Cruzadas (Vínculo Interactivo)
+          </h4>
+          <p class="text-xs text-slate-400">
+            Las líneas de conexión general no saturan el mapa. Sin embargo, al hacer clic en un nodo de conocimiento, se revelarán sus conexiones disciplinares en el panel lateral. Al pulsar sobre cualquier conexión, el mapa se desplazará automáticamente hasta el nodo correspondiente.
+          </p>
+        </div>
+
+        <div class="p-4 bg-red-950/10 border border-red-900/30 rounded-lg space-y-1">
+          <h4 class="font-bold text-red-400 flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-red-400"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            Descargo de Responsabilidad Crítica
+          </h4>
+          <p class="text-[11px] text-slate-400 leading-relaxed">
+            Todo el material expuesto en este oráculo se presenta con fines de análisis de narrativas literarias, creatividad artística y entretenimiento. Las notas se marcan explícitamente como <strong>ESPECULATIVAS</strong>.
+          </p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex justify-end">
+        <button
+          id="btn-start"
+          class="px-6 py-2 bg-gradient-to-r from-sky-600 to-amber-500 hover:from-sky-500 hover:to-amber-400 text-slate-100 font-bold text-xs uppercase tracking-widest rounded shadow-lg shadow-sky-950/40 cursor-pointer transition-all duration-200"
+        >
+          Iniciar Navegación del Oráculo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= INJECT ALL NODES DATA & INTERACTION LOGIC ================= -->
+  <script>
+    // ================= DATA DE LOS 28 NODOS =================
+    const nodesData = [
+      // === ISLA 1: GRAND LINE ===
+      {
+        id: "gobierno_mundial",
+        title: "Gobierno Mundial",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 1,
+        levelName: "Nivel 1: Periferia Externa",
+        summary: "La coalición de 170 naciones gobernada en las sombras por el Gorosei e Imu-sama, que mantiene un control absoluto sobre la información y la historia.",
+        inOnePiece: "Institución central que erradica cualquier investigación del Siglo Vacío. Borraron el nombre del Reino Antiguo y ejecutan 'Buster Calls' de forma implacable contra los disidentes.",
+        inRealWorld: "Se asemeja a las teorías de un gobierno global en la sombra, agencias de inteligencia internacionales, logias selectas y organismos no electos que moldean la historia oficial para mantener el statu quo.",
+        evidence: [
+          "La censura inmediata del nombre del Reino Antiguo por parte del Gorosei en el caso del profesor Clover.",
+          "La existencia del Trono Vacío en Mary Geoise, ocupado en secreto por la entidad divina Imu-sama.",
+          "El control absoluto de la prensa y las comunicaciones mundiales a través del presidente de los periódicos, Morgans."
+        ],
+        crossConnections: [
+          { id: "elite_global", label: "Élite Global", family: "MUNDO REAL" },
+          { id: "control_narrativa", label: "Control de la Narrativa", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Imu representa la personificación de la cúspide piramidal que las élites reales aspiran a consolidar de manera silenciosa, usando ejércitos títeres para ocultar el mando absoluto.",
+        tags: ["Poder", "Censura", "Gorosei", "Imu"],
+        x: 140,
+        y: 150
+      },
+      {
+        id: "siglo_vacio",
+        title: "Siglo Vacío",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 1,
+        levelName: "Nivel 1: Periferia Externa",
+        summary: "Un vacío de 100 años en la historia (hace 800-900 años) completamente borrado de los registros oficiales por el Gobierno Mundial.",
+        inOnePiece: "El periodo donde ocurrió la gran guerra de escala planetaria que dio origen al orden mundial actual. Toda mención, registro o estudio de esta era está penada con la pena de muerte.",
+        inRealWorld: "Vinculado a la hipótesis del tiempo fantasma o a los periodos oscuros y cataclísmicos de la historia humana donde grandes imperios y civilizaciones enteras desaparecieron de los registros convencionales sin dejar rastro directo.",
+        evidence: [
+          "La ausencia total de documentos escritos de esta era en cualquier biblioteca tradicional del mundo.",
+          "La política de exterminio inmediato contra arqueólogos independientes en cualquier mar.",
+          "La prohibición global impuesta bajo amenaza militar de descifrar o estudiar la escritura antigua."
+        ],
+        crossConnections: [
+          { id: "censura_arqueologica", label: "Censura Arqueológica", family: "MUNDO REAL" },
+          { id: "ocultamiento_conocimiento", label: "Ocultamiento del Conocimiento", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: El olvido no fue un accidente de la erosión histórica, sino una erradicación sistemática mediante fuego, sangre y mitos para legitimar el derecho divino de los vencedores.",
+        tags: ["Historia", "Tabú", "Gran Guerra"],
+        x: 560,
+        y: 140
+      },
+      {
+        id: "poneglyph",
+        title: "Poneglyphs",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 2,
+        levelName: "Nivel 2: Misterio Desvelado",
+        summary: "Monolitos de piedra indestructibles creados por el clan Kozuki de Wano que contienen la verdadera historia del mundo en una escritura prohibida.",
+        inOnePiece: "Existen tres tipos: históricos (información del pasado), de ruta/Road (coordenadas para Laugh Tale) e instructivos. Son el único testimonio físico incorruptible del Siglo Vacío.",
+        inRealWorld: "Comparables a la Piedra de Rosetta, las tablillas de arcilla sumerias o las estelas egipcias grabadas en granito y basalto, diseñadas para preservar registros dinásticos o astronómicos a través de catástrofes.",
+        evidence: [
+          "Su manufactura con una aleación mineral de extrema dureza que ninguna tecnología metalúrgica actual de la Marina puede rayar o erosionar.",
+          "Escritos en un idioma ideográfico que solo unos pocos eruditos perseguidos logran interpretar."
+        ],
+        crossConnections: [
+          { id: "monolitos", label: "Monolitos Ancestrales", family: "MUNDO REAL" },
+          { id: "tecnologia_perdida", label: "Tecnología Perdida", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: La inscripción de verdades en piedra indestructible sugiere que los soberanos antiguos sabían que la inundación de su mundo era inminente e irreversible.",
+        tags: ["Piedra", "Wano", "Criptografía"],
+        x: 220,
+        y: 290
+      },
+      {
+        id: "ohara",
+        title: "Ohara",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 2,
+        levelName: "Nivel 2: Misterio Desvelado",
+        summary: "La isla de arqueólogos que albergaba el legendario Árbol del Conocimiento, destruida hasta los cimientos mediante una Buster Call.",
+        inOnePiece: "Ohara poseía la mayor concentración de eruditos históricos del mundo. El profesor Clover y su equipo lograron deducir el nombre del Reino Antiguo justo antes de ser bombardeados.",
+        inRealWorld: "Evoca la trágica quema de la Biblioteca de Alejandría, la destrucción de la Casa de la Sabiduría de Bagdad o la quema de códices mayas por la Inquisición, erradicando siglos de memoria colectiva.",
+        evidence: [
+          "El acto desesperado de los arqueólogos arrojando los libros antiguos al lago en el centro de la isla mientras los barcos cañoneaban.",
+          "La supervivencia de Nico Robin como la única portadora viva de las técnicas arqueológicas prohibidas."
+        ],
+        crossConnections: [
+          { id: "censura_arqueologica", label: "Censura Arqueológica", family: "MUNDO REAL" },
+          { id: "control_narrativa", label: "Control de la Narrativa", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: El conocimiento no compartido es inofensivo; pero en el momento en que se intenta descifrar el origen del poder soberano, el estado responde con fuerza letal.",
+        tags: ["Biblioteca", "Buster Call", "Eruditos"],
+        x: 480,
+        y: 290
+      },
+      {
+        id: "reino_antiguo",
+        title: "Reino Antiguo",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo del Pasado",
+        summary: "Una civilización extremadamente avanzada y próspera que existió durante el Siglo Vacío y fue borrada por la alianza de los 20 reinos fundadores.",
+        inOnePiece: "Poseían un entendimiento científico fabuloso, capaz de manipular la gravedad, crear robots autónomos y canalizar recursos infinitos. Su doctrina de libertad amenazaba la soberanía absolutista.",
+        inRealWorld: "Representa el mito clásico y universal de la Edad de Oro, la civilización primigenia de gran avance tecnológico que precedió a nuestra era y es tachada de mito por la arqueología dogmática.",
+        evidence: [
+          "La tecnología de la isla científica de Egghead, la cual Vegapunk confiesa que es solo un intento primitivo de emular el pasado.",
+          "El gigante de hierro ancestral que asaltó Mary Geoise hace 200 años, impulsado por una energía desconocida imposible de replicar hoy."
+        ],
+        crossConnections: [
+          { id: "atlantida", label: "Atlántida", family: "MUNDO REAL" },
+          { id: "tecnologia_perdida", label: "Tecnología Perdida", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: El Reino Antiguo no era un reino en el sentido convencional, sino una confederación pacífica de pueblos libres que compartían recursos globales.",
+        tags: ["Egghead", "Tecnología", "Utopía"],
+        x: 260,
+        y: 190
+      },
+      {
+        id: "ancient_weapons",
+        title: "Armas Ancestrales",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo del Pasado",
+        summary: "Tres armas de inmenso poder de destrucción masiva capaces de asolar el planeta: Plutón, Poseidón y Urano.",
+        inOnePiece: "Diseñadas o domesticadas por el Reino Antiguo. Plutón es un barco de guerra colosal acorazado; Poseidón es la habilidad heredada de comandar reyes marinos; Urano permanece bajo misterio total.",
+        inRealWorld: "Un paralelo directo a las descripciones mitológicas de tecnologías destructivas celestiales (los Vimanas hindúes, el arca de la alianza, el rayo de Tesla) o el equilibrio geopolítico por armas nucleares de disuasión.",
+        evidence: [
+          "Los planos de Plutón custodiados celosamente por los constructores navales de Water 7 durante siglos.",
+          "La princesa Shirahoshi manifestando la habilidad de comunicarse con las bestias del abismo marino bajo una firma genética predeterminada."
+        ],
+        crossConnections: [
+          { id: "tesla", label: "Nikola Tesla", family: "MUNDO REAL" },
+          { id: "energia_libre", label: "Energía Libre", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Las armas no fueron creadas originalmente para hacer la guerra, sino como herramientas masivas de terraformación geofísica para desmantelar barreras oceánicas.",
+        tags: ["Plutón", "Poseidón", "Urano"],
+        x: 440,
+        y: 190
+      },
+      {
+        id: "joy_boy",
+        title: "Joy Boy",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "Figura legendaria del Siglo Vacío, primer usuario de la fruta Gomu Gomu despertada en su forma de Dios del Sol Nika, heraldo de la liberación.",
+        inOnePiece: "Dejó un testimonio de disculpa en la Isla Gyojin por romper su promesa de elevar el arca Noah. Prometió regresar al cabo de 800 años, cuando el mundo esté listo.",
+        inRealWorld: "Encarna el arquetipo mesiánico y solar del libertador presente en múltiples mitologías paganas y tradiciones religiosas de redención social (como el rey Arturo, Quetzalcóatl o divinidades solares de la libertad).",
+        evidence: [
+          "El Poneglyph de disculpa dirigido a la antigua princesa sirena en las profundidades oceánicas.",
+          "Los cantos rítmicos de los tambores de la liberación que resuenan en los corazones de los pueblos oprimidos."
+        ],
+        crossConnections: [
+          { id: "unificacion_humanidad", label: "Unificación de la Humanidad", family: "PUENTES" },
+          { id: "oda_insider", label: "¿Oda es un insider?", family: "META" }
+        ],
+        criticalNote: "ESPECULATIVO: Joy Boy no representa un linaje genético selecto, sino un estado de consciencia indomable que se activa en momentos de máxima opresión sistémica.",
+        tags: ["Nika", "Mesías", "Profecía", "Liberación"],
+        x: 290,
+        y: 250
+      },
+      {
+        id: "will_of_d",
+        title: "La Voluntad de D.",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "Un misterioso linaje o voluntad heredada compartida por individuos catalogados por los autoproclamados Dioses como 'Enemigos Naturales'.",
+        inOnePiece: "Los portadores de la letra 'D' causan grandes tempestades políticas allá donde van. El Gobierno se encarga de censurar el nombre del Rey de los Piratas (Gold Roger en lugar de Gol D. Roger) para silenciar la marca.",
+        inRealWorld: "Asimilable a las teorías sobre dinastías disidentes, herejías proscritas por las iglesias del poder o líneas sanguíneas revolucionarias destinadas a quebrantar la servidumbre de las masas.",
+        evidence: [
+          "La inusual reacción de los portadores (Luffy, Ace, Saul, Roger) sonriendo con paz absoluta ante la inminencia de su ejecución.",
+          "Las revelaciones crípticas de Rosinante sobre el pánico que causa la mención de la 'D' en la nobleza de Mary Geoise."
+        ],
+        crossConnections: [
+          { id: "elite_global", label: "Élite Global", family: "MUNDO REAL" },
+          { id: "ocultamiento_conocimiento", label: "Ocultamiento del Conocimiento", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: La 'D' podría simbolizar la palabra Dawn (Amanecer) u Half-circle (La Luna que brilla en la noche), un recordatorio genético de desobediencia al orden solar corrupto del Gobierno Mundial.",
+        tags: ["Linaje", "Destino", "Rebelión"],
+        x: 410,
+        y: 250
+      },
+      {
+        id: "raftel",
+        title: "Raftel / Laugh Tale",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "La mítica y esquiva última isla del Grand Line, inaccesible mediante cartas de navegación estándar o brújulas de aguja magnética.",
+        inOnePiece: "Bautizada por Gol D. Roger tras arribar a su costa y estallar en risas frente al registro completo del Siglo Vacío, el origen de los mares y el destino inexorable de la humanidad.",
+        inRealWorld: "Equivale a los reinos legendarios de Agartha, Shambhala o las tierras boreales libres de invierno, descritos como refugios de altísimo conocimiento resguardados por anomalías meteorológicas y magnéticas de la Tierra.",
+        evidence: [
+          "La imposibilidad física de localizar la isla usando los Log Pose convencionales; requiere de la intersección exacta dibujada por los cuatro Road Poneglyphs.",
+          "La risa desconcertante de la tripulación de Roger, que prefirió callar antes que iniciar una revolución prematura."
+        ],
+        crossConnections: [
+          { id: "antartida", label: "Antártida", family: "MUNDO REAL" },
+          { id: "unificacion_humanidad", label: "Unificación de la Humanidad", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Laugh Tale no es un trozo de tierra seco convencional, sino una coordenada geofísica resguardada por un torbellino magnético que se abre solo en conjunciones estelares específicas.",
+        tags: ["Roger", "Fin del Camino", "Última Isla"],
+        x: 320,
+        y: 110
+      },
+      {
+        id: "one_piece",
+        title: "El One Piece",
+        category: "grand_line",
+        categoryLabel: "GRAND LINE",
+        categoryColor: "#38bdf8",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "El tesoro material definitivo dejado por Joy Boy en Laugh Tale, cuya futura revelación desatará una catástrofe bélica terminal.",
+        inOnePiece: "Vegapunk confirmó públicamente al planeta que el One Piece es real, físico, y que su adquisición determinará si la corteza terrestre remanente se hunde por completo o emerge de las aguas.",
+        inRealWorld: "Representa el catalizador del despertar colectivo: la revelación de una verdad de tal envergadura que volatiliza de forma instantánea el valor del dinero fiduciario y las estructuras gubernamentales.",
+        evidence: [
+          "La confesión de Barbablanca antes de su muerte, asegurando que el hallazgo del tesoro pondrá al mundo entero patas arriba.",
+          "La desesperación de los Dragones Celestiales por movilizar sus flotas para impedir que cualquier pirata acceda a la verdad última."
+        ],
+        crossConnections: [
+          { id: "energia_libre", label: "Energía Libre", family: "PUENTES" },
+          { id: "tratado_antartico", label: "Tratado Antártico", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: El tesoro no es oro ni joyas, sino un mecanismo tecnológico ancestral capaz de drenar o unificar los océanos rompiendo el muro de la Red Line.",
+        tags: ["Tesoro", "Fin de la Era", "Gran Guerra"],
+        x: 380,
+        y: 110
+      },
+
+      // === ISLA 2: MUNDO REAL ===
+      {
+        id: "elite_global",
+        title: "Élite Global",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 1,
+        levelName: "Nivel 1: Periferia Externa",
+        summary: "Cabal financiero, corporativo y dinástico que dicta la geopolítica, el flujo bancario centralizado y las políticas de masas.",
+        inOnePiece: "La viva representación de los Dragones Celestiales (Tenryubito) de Mary Geoise, quienes dominan el mundo considerándose dioses inalcanzables, inmunes a las leyes.",
+        inRealWorld: "Familias dinásticas interconectadas, fundaciones billonarias libres de impuestos y comités privados no electos (Bilderberg, WEF) que guían de forma hermética la marcha económica.",
+        evidence: [
+          "La unificación de políticas bancarias a través del Banco de Pagos Internacionales (BPI).",
+          "El monopolio de fondos de inversión como Vanguard y BlackRock en los principales conglomerados de comunicación."
+        ],
+        crossConnections: [
+          { id: "gobierno_mundial", label: "Gobierno Mundial", family: "GRAND LINE" },
+          { id: "control_narrativa", label: "Control de la Narrativa", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: La élite global no compite entre naciones; las guerras geopolíticas visibles son espectáculos teatrales para justificar el endeudamiento y el control.",
+        tags: ["Cabal", "Dinastías", "Mary Geoise"],
+        x: 840,
+        y: 150
+      },
+      {
+        id: "censura_arqueologica",
+        title: "Censura Arqueológica",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 1,
+        levelName: "Nivel 1: Periferia Externa",
+        summary: "La supresión e incautación sistemática por parte de la academia de vestigios físicos que amenazan el paradigma lineal evolutivo.",
+        inOnePiece: "El aniquilamiento del Árbol del Conocimiento de Ohara y el borrado cartográfico de la isla para erradicar cualquier registro físico no aprobado.",
+        inRealWorld: "La desaparición u ocultación en sótanos inaccesibles de osamentas gigantescas, escrituras anómalas e inventos tecnológicos incómodos para la antropología oficial.",
+        evidence: [
+          "Casos judiciales históricos documentados sobre la supuesta destrucción de cráneos anómalos o de proporciones fuera de la escala evolutiva.",
+          "La sistemática exclusión y bloqueo de fondos de investigación a geólogos que exponen evidencia de desgaste hidráulico en monumentos egipcios."
+        ],
+        crossConnections: [
+          { id: "siglo_vacio", label: "Siglo Vacío", family: "GRAND LINE" },
+          { id: "ocultamiento_conocimiento", label: "Ocultamiento del Conocimiento", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Quien controla el origen de la especie humana impone las pautas del comportamiento espiritual e intelectual moderno.",
+        tags: ["Academia", "Dogma", "Supresión"],
+        x: 1260,
+        y: 150
+      },
+      {
+        id: "piramides",
+        title: "Pirámides Globales",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 2,
+        levelName: "Nivel 2: Misterio Desvelado",
+        summary: "Complejos piramidales construidos con proporciones matemáticas avanzadas y alineación estelar en continentes incomunicados.",
+        inOnePiece: "Se relaciona con el diseño arquitectónico imponente de Mary Geoise o los palacios ancestrales que resistieron las inundaciones geológicas.",
+        inRealWorld: "La presencia inexplicable de pirámides orientadas astronómicamente en Egipto, México, China, Bosnia e India, compartiendo técnicas constructivas milimétricas.",
+        evidence: [
+          "Alineaciones de la Gran Pirámide con la constelación de Orión y desviación menor a fracciones de grado del norte real.",
+          "El uso masivo de granito rico en cristales de cuarzo, cuyas propiedades piezoeléctricas sugieren transmisión sónica o eléctrica."
+        ],
+        crossConnections: [
+          { id: "reino_antiguo", label: "Reino Antiguo", family: "GRAND LINE" },
+          { id: "tecnologia_perdida", label: "Tecnología Perdida", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Las pirámides no eran tumbas, sino las centrales de red electromagnética terrestre de la civilización madre antediluviana.",
+        tags: ["Megalitismo", "Física Antigua", "Giza"],
+        x: 920,
+        y: 280
+      },
+      {
+        id: "monolitos",
+        title: "Monolitos Ancestrales",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 2,
+        levelName: "Nivel 2: Misterio Desvelado",
+        summary: "Rocas masivas de una sola pieza que superan las 500 toneladas, transportadas y erigidas sin maquinaria moderna explicable.",
+        inOnePiece: "El origen de los Poneglyphs: rocas colosales moldeadas de forma inalterable y distribuidas por el clan Kozuki como marcas eternas.",
+        inRealWorld: "Ejemplos de ingeniería imposible como Baalbek en el Líbano, Sacsayhuamán en Cuzco, o el obelisco inacabado de Asuán.",
+        evidence: [
+          "El Trilithon de Baalbek, tres bloques de granito tallado de 800 toneladas situados a gran altura.",
+          "Cortes tridimensionales precisos en diorita y basalto con surcos microscópicos imposibles para el bronce."
+        ],
+        crossConnections: [
+          { id: "poneglyph", label: "Poneglyphs", family: "GRAND LINE" },
+          { id: "tecnologia_perdida", label: "Tecnología Perdida", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Los bloques monumentales se erigían utilizando resonancia sónica localizada para neutralizar temporalmente el efecto de la masa gravitatoria.",
+        tags: ["Baalbek", "Sónica", "Arquitectura Antigua"],
+        x: 1180,
+        y: 280
+      },
+      {
+        id: "mito_diluvio",
+        title: "Mito del Diluvio",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo del Pasado",
+        summary: "El testimonio unificado de cientos de culturas originarias sobre una gran inundación planetaria que reconfiguró la geografía terrestre.",
+        inOnePiece: "La filtración de Vegapunk: el mar actual es el cementerio del pasado; el nivel subió 200 metros por la energía liberada en el cataclismo ancestral.",
+        inRealWorld: "Narrativas idénticas sobre una gran inundación descritas por sumerios, babilonios, hebreos, mayas, aztecas e incas de forma aislada.",
+        evidence: [
+          "La coincidencia de la epopeya sumeria de Gilgamesh con los posteriores textos semíticos.",
+          "La presencia de fósiles marinos frescos en cordilleras de gran altitud como los Andes."
+        ],
+        crossConnections: [
+          { id: "siglo_vacio", label: "Siglo Vacío", family: "GRAND LINE" },
+          { id: "unificacion_humanidad", label: "Unificación de la Humanidad", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: El diluvio fue provocado de manera artificial mediante el desbalance electromagnético o la fractura intencionada del acuífero interno planetario.",
+        tags: ["Hundimiento", "Cataclismo", "Diluvio"],
+        x: 960,
+        y: 190
+      },
+      {
+        id: "younger_dryas",
+        title: "El Younger Dryas",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo del Pasado",
+        summary: "Cambio climático de magnitudes extremas hace 12,800 años que puso fin repentino a la última glaciación y sepultó tierras emergidas.",
+        inOnePiece: "El periodo turbulento de guerras mecánicas y reajustes del Siglo Vacío que transformó un planeta continental en un mar de islas aisladas.",
+        inRealWorld: "Un súbito congelamiento express seguido de inundaciones masivas, provocado presuntamente por el impacto de fragmentos de un gran cometa contra el hielo boreal.",
+        evidence: [
+          "La capa geológica de límite rica en platino y nanodiamantes de impacto en múltiples continentes.",
+          "El repentino colapso de la megafauna pleistocena y la súbita desaparición de la cultura Clovis."
+        ],
+        crossConnections: [
+          { id: "reino_antiguo", label: "Reino Antiguo", family: "GRAND LINE" },
+          { id: "atlantida", label: "Atlántida", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: Este impacto fue la fuerza física directa que destruyó el Reino Antiguo y sumergió la edad de oro bajo los océanos.",
+        tags: ["Glaciación", "Impacto Espacial", "Geología"],
+        x: 1140,
+        y: 190
+      },
+      {
+        id: "atlantida",
+        title: "Atlántida",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "La legendaria isla descrita por Platón, sede de un imperio marítimo formidable y rica en el metal místico Oricalco.",
+        inOnePiece: "La representación física del Reino Antiguo gobernado por los D., cuyos cimientos sumergidos constituyen el lecho marino prohibido.",
+        inRealWorld: "La narración platónica que sitúa el imperio más allá de las Columnas de Hércules, organizado en anillos concéntricos terrestres e hidráulicos.",
+        evidence: [
+          "La Estructura de Richat en Mauritania (el Ojo del Sahara), cuyas dimensiones físicas y manantiales coinciden milimétricamente.",
+          "Las anomalías sumergidas de Bimini que delatan pavimentación artificial a gran escala."
+        ],
+        crossConnections: [
+          { id: "reino_antiguo", label: "Reino Antiguo", family: "GRAND LINE" },
+          { id: "tecnologia_perdida", label: "Tecnología Perdida", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: La Atlántida no yace hundida en medio del océano; se halla en África Occidental, expuesta tras el violento retroceso del océano en el Sahara.",
+        tags: ["Platón", "Richat", "Utopía"],
+        x: 950,
+        y: 250
+      },
+      {
+        id: "antartida",
+        title: "Secretos de la Antártida",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "El misterioso continente congelado sujeto a la mayor censura militar, científica y cartográfica de la era moderna.",
+        inOnePiece: "El cinturón de calma (Calm Belt) habitado por titánicos reyes marinos que resguarda de forma inexpugnable el mar del Grand Line.",
+        inRealWorld: "Las declaraciones del almirante Richard Byrd sobre tierras libres de hielo inmensas más allá del polo, y el inmediato bloqueo diplomático militar internacional.",
+        evidence: [
+          "Los mapas renacentistas como el de Piri Reis u Oronce Fine, que cartografían la geografía de la Antártida sin hielo.",
+          "El absoluto secreto sobre la geografía y anomalías magnéticas del polo impuesto a las expediciones privadas."
+        ],
+        crossConnections: [
+          { id: "raftel", label: "Raftel / Laugh Tale", family: "GRAND LINE" },
+          { id: "tratado_antartico", label: "Tratado Antártico", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La Antártida no es un continente en la base de una esfera, sino un monumental anillo exterior de hielo que retiene la masa oceánica de nuestro plano habitable.",
+        tags: ["Hielo", "Byrd", "Anomalías"],
+        x: 1150,
+        y: 250
+      },
+      {
+        id: "tratado_antartico",
+        title: "Tratado Antártico",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "Tratado firmado en plena Guerra Fría que restringe permanentemente toda actividad civil o militar autónoma en el polo sur.",
+        inOnePiece: "La prohibición de navegar por los confines del Calm Belt, manteniendo el Gobierno el monopolio de paso mediante tecnología militar Kairoseki.",
+        inRealWorld: "Un blindaje diplomático inaudito firmado por enemigos nucleares directos (EE.UU., URSS) en 1959. Prohíbe cruzar el paralelo 60 sur de manera independiente.",
+        evidence: [
+          "El desmantelamiento por fragatas militares de expediciones independientes que intentaron explorar de forma autónoma el continente.",
+          "La total ausencia de soberanía nacional civil y la prohibición de poblamiento permanente autónomo de particulares."
+        ],
+        crossConnections: [
+          { id: "one_piece", label: "El One Piece", family: "GRAND LINE" },
+          { id: "ocultamiento_conocimiento", label: "Ocultamiento del Conocimiento", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: El Tratado Antártico fue diseñado para custodiar las fronteras de nuestro domo energético e impedir el descubrimiento de tierras exteriores habitadas.",
+        tags: ["Leyes Polares", "Censura Militar", "Polo Sur"],
+        x: 1020,
+        y: 110
+      },
+      {
+        id: "supresion_patentes",
+        title: "Supresión de Patentes",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "Mecanismo que permite incautar inventos revolucionarios alegando defensa nacional si devalúan el mercado energético de hidrocarburos.",
+        inOnePiece: "El complot para silenciar la 'Madre Llama' de Vegapunk, eliminando al inventor para conservar el monopolio y la sumisión de los reinos.",
+        inRealWorld: "La ley del Acta de Secreto de Invención (1951) en los EE.UU., que clasifica y archiva patentes de energía libre o generadores autónomos de alto coeficiente.",
+        evidence: [
+          "La clasificación activa de más de 6,200 patentes tecnológicas por 'amenazas directas a la seguridad económica y estabilidad industrial'.",
+          "Los misteriosos decesos o procesos legales sufridos por inventores que anunciaron plantas de electrólisis de agua de alta eficiencia."
+        ],
+        crossConnections: [
+          { id: "ancient_weapons", label: "Armas Ancestrales", family: "GRAND LINE" },
+          { id: "energia_libre", label: "Energía Libre", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: La escasez energética es inducida por cábalas financieras. Las tecnologías de la sobre-unidad y éter ya operan en el complejo militar clasificado.",
+        tags: ["Secreto", "Patentes", "Monopolios"],
+        x: 1080,
+        y: 110
+      },
+      {
+        id: "tesla",
+        title: "Nikola Tesla",
+        category: "mundo_real",
+        categoryLabel: "MUNDO REAL",
+        categoryColor: "#fbbf24",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "Genio que descubrió la forma de transmitir energía inalámbrica ilimitada aprovechando la resonancia de la ionosfera terrestre.",
+        inOnePiece: "El alter ego histórico de Vegapunk y su red cerebral descentralizada, diseñando un sistema energético libre para erradicar las guerras por recursos.",
+        inRealWorld: "La construcción de la torre Wardenclyffe, boicoteada y dinamitada por JP Morgan tras enterarse de que el aire no se podía tarifar con contadores.",
+        evidence: [
+          "La requisa de todos los documentos y bobinas de Tesla por la Oficina de Propiedades Extranjeras inmediatamente tras su muerte.",
+          "La posterior desaparición de los archivos relacionados con el 'Rayo de la Muerte' de la órbita pública."
+        ],
+        crossConnections: [
+          { id: "ancient_weapons", label: "Armas Ancestrales", family: "GRAND LINE" },
+          { id: "energia_libre", label: "Energía Libre", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Tesla redescubrió los secretos de resonancia armónica empleados en la antigüedad. No inventó nada nuevo; simplemente decodificó la red planetaria original.",
+        tags: ["Wardenclyffe", "Éter", "Magnetismo"],
+        x: 1050,
+        y: 250
+      },
+
+      // === ISLA 3: ARCHIPIÉLAGO PUENTES ===
+      {
+        id: "ocultamiento_conocimiento",
+        title: "Ocultamiento del Conocimiento",
+        category: "puentes",
+        categoryLabel: "PUENTES",
+        categoryColor: "#34d399",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo de la Unión",
+        summary: "Estrategia de compartimentación de datos históricos y científicos para mantener a la población esclava de una realidad fragmentada.",
+        inOnePiece: "La separación intencionada de los textos históricos del Siglo Vacío por todo el mundo para evitar que un solo investigador los unifique y amenace el orden.",
+        inRealWorld: "La organización jerárquica de sociedades iniciáticas y agencias de inteligencia donde la información está sellada por grados de acceso estricto.",
+        evidence: [
+          "El juramento de silencio exigido bajo amenaza en ritos de alto nivel y comités científicos de defensa estatal.",
+          "La estricta catalogación confidencial que bloquea expedientes históricos incómodos."
+        ],
+        crossConnections: [
+          { id: "siglo_vacio", label: "Siglo Vacío", family: "GRAND LINE" },
+          { id: "censura_arqueologica", label: "Censura Arqueológica", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: No hay complots aislados; la supresión de la historia prohibida y la confiscación de energía libre son la misma agenda ejecutada por diferentes departamentos.",
+        tags: ["Hermetismo", "Control", "Compartimentación"],
+        x: 700,
+        y: 550
+      },
+      {
+        id: "control_narrativa",
+        title: "Control de la Narrativa",
+        category: "puentes",
+        categoryLabel: "PUENTES",
+        categoryColor: "#34d399",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo de la Unión",
+        summary: "El condicionamiento cognitivo a través de medios masivos y educación académica oficial para ridiculizar de forma inmediata la verdad alternativa.",
+        inOnePiece: "Morgans manipulando las portadas del diario oficial, convirtiendo al libertador Monkey D. Luffy en un despiadado demonio devorador de imperios.",
+        inRealWorld: "El despliegue sistemático del término de descrédito 'Teórico de la Conspiración' diseñado originalmente por la división de guerra psicológica de la CIA.",
+        evidence: [
+          "El memorando desclasificado de la CIA-1035-960 que instruía a periodistas aliados a ridiculizar a quienes cuestionaran el informe de la comisión de magnicidio.",
+          "La homogeneidad de las agencias de prensa que distribuyen libretos idénticos a los noticieros del globo."
+        ],
+        crossConnections: [
+          { id: "gobierno_mundial", label: "Gobierno Mundial", family: "GRAND LINE" },
+          { id: "elite_global", label: "Élite Global", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La jaula más perfecta es aquella cuyos barrotes son invisibles, confeccionados con las mismas series de ocio, noticias de pánico y redes que la víctima consume.",
+        tags: ["Propaganda", "CIA", "Medios"],
+        x: 550,
+        y: 590
+      },
+      {
+        id: "tecnologia_perdida",
+        title: "Tecnología Perdida",
+        category: "puentes",
+        categoryLabel: "PUENTES",
+        categoryColor: "#34d399",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo de la Unión",
+        summary: "Conocimientos mecánicos y energéticos de civilizaciones antediluvianas colapsadas que desafían el dogma de la evolución rectilínea.",
+        inOnePiece: "Vegapunk admitiendo con amargura que su laboratorio futurista es una recreación torpe y rudimentaria de las maravillas científicas del Siglo Vacío.",
+        inRealWorld: "El hallazgo de artefactos mecánicos sofisticados y fundiciones de metales imposibles enterrados bajo estratos de épocas pre-tecnológicas.",
+        evidence: [
+          "El mecanismo de Anticitera (siglo I a.C.), un ordenador de bronce capaz de rastrear tránsitos astronómicos con precisión de engranajes diferenciales.",
+          "El pilar de hierro puro de Delhi de más de 7 toneladas que no ha presentado corrosión a la intemperie en 1,600 años."
+        ],
+        crossConnections: [
+          { id: "reino_antiguo", label: "Reino Antiguo", family: "GRAND LINE" },
+          { id: "piramides", label: "Pirámides Globales", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La humanidad atraviesa periodos cíclicos de apogeo e involución inducida tras los cuales las dinastías reinantes resetean la tecnología disponible.",
+        tags: ["Anacronismo", "Anticitera", "Arqueología Técnica"],
+        x: 850,
+        y: 590
+      },
+      {
+        id: "energia_libre",
+        title: "Energía Libre",
+        category: "puentes",
+        categoryLabel: "PUENTES",
+        categoryColor: "#34d399",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "El concepto físico del éter universal, un mar inagotable de energía del que se puede extraer electricidad inalámbrica e ilimitada.",
+        inOnePiece: "La 'Madre Llama' (Mother Flame) del Reino Antiguo, un sol artificial de energía inextinguible codiciado por el Gobierno Mundial para alimentar sus armas aéreas.",
+        inRealWorld: "La física éterica defendida por Tesla y Faraday, que contempla el universo como un sistema dinámico abierto de potencial dieléctrico aprovechable.",
+        evidence: [
+          "Los planos y el prototipo funcional de la torre de energía inalámbrica Wardenclyffe de Tesla.",
+          "La exclusión sistemática del concepto del Éter de la física académica para consolidar el control de los monopolios de hidrocarburos."
+        ],
+        crossConnections: [
+          { id: "one_piece", label: "El One Piece", family: "GRAND LINE" },
+          { id: "tesla", label: "Nikola Tesla", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La erradicación del éter en la física oficial no fue científica, sino una maniobra financiera para someter los recursos globales bajo contadores obligatorios.",
+        tags: ["Bobinas", "Éter", "Vegapunk"],
+        x: 700,
+        y: 460
+      },
+      {
+        id: "unificacion_humanidad",
+        title: "Unificación de la Humanidad",
+        category: "puentes",
+        categoryLabel: "PUENTES",
+        categoryColor: "#34d399",
+        level: 5,
+        levelName: "Nivel 5: Maestría Absoluta",
+        summary: "El romper definitivo de las murallas físicas, ideológicas y económicas impuestas por el sistema para devolver a la especie a su equilibrio universal.",
+        inOnePiece: "La demolición de la Línea Roja (Red Line), el muro continental artificial que segrega los mares, creando el 'All Blue' y permitiendo la unión de los pueblos.",
+        inRealWorld: "El despertar espiritual colectivo de la humanidad, rebasando las falsas banderas políticas e identitarias nacionales para constituir una civilización libre soberana.",
+        evidence: [
+          "La profecía grabada en Wano y la isla Gyojin sobre el fin de los mares segregados y el retorno del gran sol de la libertad.",
+          "El desmoronamiento paulatino de los dogmas tradicionales mediáticos frente al flujo directo de conciencia libre."
+        ],
+        crossConnections: [
+          { id: "joy_boy", label: "Joy Boy", family: "GRAND LINE" },
+          { id: "mito_diluvio", label: "Mito del Diluvio", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La Red Line en One Piece es una presa hidráulica y de control magnético. Desmantelarla es el fin geofísico de la escasez inducida en el globo terráqueo.",
+        tags: ["All Blue", "Red Line", "Liberación"],
+        x: 700,
+        y: 690
+      },
+
+      // === ISLA 4: META-CUESTIONES ===
+      {
+        id: "oda_insider",
+        title: "¿Eiichiro Oda es un Insider?",
+        category: "cuestiones",
+        categoryLabel: "META-CUESTIONES",
+        categoryColor: "#a78bfa",
+        level: 1,
+        levelName: "Nivel 1: Periferia Externa",
+        summary: "La posibilidad de que el autor de One Piece pertenezca a círculos herméticos de revelación o disponga de documentos prohibidos de la historia oculta planetaria.",
+        inOnePiece: "El manga plasma con precisión de cirujano anomalías geofísicas, dinámicas masónicas de poder y la supresión arqueológica de gigantes décadas antes de ser debatidas.",
+        inRealWorld: "La doctrina del 'Predictive Programming' o revelación por goteo en la literatura, donde las élites exponen trozos de verdades bajo el amparo de la ficción.",
+        evidence: [
+          "La impresionante concordancia de la geografía circular del Grand Line con anomalías magnéticas reales de la Tierra.",
+          "El uso preciso de simbología oculta, cábala hebrea y teología hermética plasmados en las banderas del Gobierno."
+        ],
+        crossConnections: [
+          { id: "joy_boy", label: "Joy Boy", family: "GRAND LINE" },
+          { id: "control_narrativa", label: "Control de la Narrativa", family: "PUENTES" }
+        ],
+        criticalNote: "ESPECULATIVO: Oda actúa como bardo moderno: filtra la historia prohibida de nuestro plano terrestre para que millones de mentes despierten mediante el mito.",
+        tags: ["Oda", "predictive_programming", "Simbología"],
+        x: 1250,
+        y: 560
+      },
+      {
+        id: "apofenia_patron",
+        title: "Apofenia vs Patrón Real",
+        category: "cuestiones",
+        categoryLabel: "META-CUESTIONES",
+        categoryColor: "#a78bfa",
+        level: 2,
+        levelName: "Nivel 2: Misterio Desvelado",
+        summary: "El desafío psicológico de discernir entre la conexión fantasiosa de datos aislados y el descubrimiento de un patrón real silenciado.",
+        inOnePiece: "El pánico del Gobierno de que Clover unifique los puntos aislados del pasado; al conectar los Poneglyphs, la farsa de la Marina cae al instante.",
+        inRealWorld: "La propensión humana al reconocimiento de patrones (apofenia). Al entrelazar geología, monolitos y geopolítica bancaria, emerge una red lógica ineludible.",
+        evidence: [
+          "El sesgo cognitivo de confirmación que tiende a forzar explicaciones míticas a fenómenos geológicos naturales.",
+          "La navaja de Ockham confrontada por anomalías estadísticas masivas en la construcción del megalitismo global."
+        ],
+        crossConnections: [
+          { id: "ohara", label: "Ohara", family: "GRAND LINE" },
+          { id: "censura_arqueologica", label: "Censura Arqueológica", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La apofenia es la defensa de la academia; tildan de locura visual el reconocimiento de patrones para evitar que se desvele el molde maestro de control.",
+        tags: ["Psicología", "Sesgo", "Epistemología"],
+        x: 1150,
+        y: 690
+      },
+      {
+        id: "historiografia_vencedores",
+        title: "Historiografía de Vencedores",
+        category: "cuestiones",
+        categoryLabel: "META-CUESTIONES",
+        categoryColor: "#a78bfa",
+        level: 3,
+        levelName: "Nivel 3: El Núcleo de la Duda",
+        summary: "El axioma histórico que dicta que la historia escrita oficial es redactada de forma exclusiva por las potencias militares vencedoras.",
+        inOnePiece: "Los Veinte Reinos escribiendo el códice de Mary Geoise mientras quemaban y proscribían todo manuscrito procedente del Reino Antiguo derrotado.",
+        inRealWorld: "La reescritura de los anales de la antigüedad tras conquistas imperiales, la destrucción de la cultura fenicia, cartaginesa y las crónicas pre-romanas.",
+        evidence: [
+          "La erradicación de crónicas indígenas americanas que relataban la llegada de naves transoceánicas europeas muy anteriores al siglo XV.",
+          "La sistemática demonización teológica de deidades ancestrales para asimilarlas en el dogma monoteísta dominante."
+        ],
+        crossConnections: [
+          { id: "siglo_vacio", label: "Siglo Vacío", family: "GRAND LINE" },
+          { id: "censura_arqueologica", label: "Censura Arqueológica", family: "MUNDO REAL" }
+        ],
+        criticalNote: "ESPECULATIVO: La historia oficial es el libreto de propaganda que la corporación dominante ha sancionado para mantener al ciudadano en la infancia intelectual.",
+        tags: ["Historia", "Poder", "Códices"],
+        x: 1350,
+        y: 690
+      },
+      {
+        id: "revelacion_metodo",
+        title: "Revelación del Método",
+        category: "cuestiones",
+        categoryLabel: "META-CUESTIONES",
+        categoryColor: "#a78bfa",
+        level: 4,
+        levelName: "Nivel 4: Maestría Inicial",
+        summary: "Doctrina que afirma que las sociedades de poder tienen la obligación kármica o psicológica de exponer sus agendas de manera indirecta antes de ejecutarlas.",
+        inOnePiece: "El Gobierno tallando la verdad del Trono Vacío, permitiendo que existiese ante los ojos de la nobleza inferior bajo el amparo de la neutralidad falsa.",
+        inRealWorld: "La asombrosa cantidad de simbologías de control financiero y satelital expuestas en producciones cinematográficas, billetes de curso legal u obras arquitectónicas públicas.",
+        evidence: [
+          "El simbolismo masónico y del ojo de la providencia impreso en el billete de un dólar estadounidense diseñado en la gran depresión.",
+          "La asombrosa sincronía de ficciones apocalípticas hollywoodenses que describen virus y monedas cibernéticas años antes de su instauración."
+        ],
+        crossConnections: [
+          { id: "control_narrativa", label: "Control de la Narrativa", family: "PUENTES" },
+          { id: "oda_insider", label: "¿Oda es un insider?", family: "META" }
+        ],
+        criticalNote: "ESPECULATIVO: La exposición de la agenda en la ficción libera de responsabilidad metafísica a los perpetradores: si el esclavo lo ve, lo ignora y lo acepta, consiente tácitamente su servidumbre.",
+        tags: ["Kármico", "Simbolismo", "Cine"],
+        x: 1350,
+        y: 800
+      }
+    ];
+
+    // ================= MAP CAMERA AND INTERACTION LOGIC =================
+    const mapContainer = document.getElementById('map-container');
+    const mapViewport = document.getElementById('map-viewport');
+    const nodesGroup = document.getElementById('nodes-group');
+    const zoomPercentEl = document.getElementById('zoom-percent');
+    
+    // UI elements
+    const sideDrawer = document.getElementById('side-drawer');
+    const helpModal = document.getElementById('help-modal');
+    
+    // Filter Elements
+    const searchInput = document.getElementById('search-input');
+    const categoryFilter = document.getElementById('category-filter');
+    const levelFilter = document.getElementById('level-filter');
+
+    // Camera variables
+    let scale = 0.7;
+    let translateX = 220;
+    let translateY = 140;
+    let isDragging = false;
+    let startX = 0, startY = 0;
+    
+    let selectedNode = null;
+    let pulseNodeId = null;
+
+    // Initialize application view
+    function updateTransform() {
+      mapViewport.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+      zoomPercentEl.textContent = Math.round(scale * 100);
+    }
+
+    // ================= VANILLA ZOOM & DRAG IMPLEMENTATION =================
+    mapContainer.addEventListener('mousedown', (e) => {
+      // Ignore if clicking an interactive node directly (let node handle it)
+      if (e.target.closest('.interactive-node') || e.target.closest('button') || e.target.closest('select')) return;
+      isDragging = true;
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+      mapContainer.style.cursor = 'grabbing';
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        mapContainer.style.cursor = 'grab';
+      }
+    });
+
+    // Mobile touch controls
+    mapContainer.addEventListener('touchstart', (e) => {
+      if (e.target.closest('.interactive-node') || e.target.closest('button')) return;
+      if (e.touches.length === 1) {
+        isDragging = true;
+        startX = e.touches[0].clientX - translateX;
+        startY = e.touches[0].clientY - translateY;
+      }
+    }, { passive: true });
+
+    mapContainer.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      if (e.touches.length === 1) {
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        updateTransform();
+      }
+    }, { passive: true });
+
+    mapContainer.addEventListener('touchend', () => {
+      isDragging = false;
+    });
+
+    // Zoom on scroll Wheel
+    mapContainer.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = 1.1;
+      const rect = mapContainer.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Mouse coordinate in map space before zoom
+      const mapX = (mouseX - translateX) / scale;
+      const mapY = (mouseY - translateY) / scale;
+
+      if (e.deltaY < 0) {
+        scale = Math.min(3.0, scale * zoomFactor);
+      } else {
+        scale = Math.max(0.15, scale / zoomFactor);
+      }
+
+      // Re-calculate translations to keep zoom centered on cursor
+      translateX = mouseX - mapX * scale;
+      translateY = mouseY - mapY * scale;
+
+      updateTransform();
+    }, { passive: false });
+
+    // ================= NODE SELECTION AND FLIGHT CAMERA =================
+    function focusOnNode(node) {
+      selectedNode = node;
+      pulseNodeId = node.id;
+      
+      // Calculate flight translation to center node in workspace
+      const containerWidth = mapContainer.clientWidth;
+      const containerHeight = mapContainer.clientHeight;
+      
+      // Target coordinates centered with sidebar space discount
+      const discountX = window.innerWidth >= 768 ? 200 : 0;
+      
+      // Target camera setting
+      scale = 1.05;
+      translateX = (containerWidth / 2 - discountX) - node.x * scale;
+      translateY = (containerHeight / 2) - node.y * scale;
+      
+      updateTransform();
+      renderNodes();
+      openDrawer(node);
+      
+      // Trigger a beautiful visual sonar pulse on targeted node
+      setTimeout(() => {
+        pulseNodeId = null;
+        renderNodes();
+      }, 2500);
+    }
+
+    // ================= DRAW NODES IN SVG DYNAMICALLY =================
+    function getCategoryTheme(category) {
+      switch(category) {
+        case "grand_line":
+          return { color: "#38bdf8", bg: "bg-sky-950/40", text: "text-sky-400", border: "border-sky-800/60" };
+        case "mundo_real":
+          return { color: "#fbbf24", bg: "bg-amber-950/40", text: "text-amber-400", border: "border-amber-800/60" };
+        case "puentes":
+          return { color: "#34d399", bg: "bg-emerald-950/40", text: "text-emerald-400", border: "border-emerald-800/60" };
+        case "cuestiones":
+          return { color: "#a78bfa", bg: "bg-purple-950/40", text: "text-purple-400", border: "border-purple-800/60" };
+        default:
+          return { color: "#cbd5e1", bg: "bg-slate-900/50", text: "text-slate-400", border: "border-slate-800" };
+      }
+    }
+
+    function renderNodes() {
+      // Clear current elements
+      nodesGroup.innerHTML = '';
+
+      const query = searchInput.value.toLowerCase().trim();
+      const catVal = categoryFilter.value;
+      const lvlVal = levelFilter.value;
+
+      nodesData.forEach((node) => {
+        // Evaluate Filter matches
+        const matchesQuery = query === "" || 
+          node.title.toLowerCase().includes(query) || 
+          node.summary.toLowerCase().includes(query) || 
+          node.tags.some(t => t.toLowerCase().includes(query));
+          
+        const matchesCat = catVal === "all" || node.category === catVal;
+        const matchesLvl = lvlVal === "all" || node.level.toString() === lvlVal;
+        
+        const isHighlighted = matchesQuery && matchesCat && matchesLvl;
+        const hasSearchActive = query !== "" || catVal !== "all" || lvlVal !== "all";
+
+        // Determine node opacity based on search highlights
+        let opacity = "1.0";
+        if (hasSearchActive && !isHighlighted) {
+          opacity = "0.15";
+        }
+
+        const isSelected = selectedNode && selectedNode.id === node.id;
+        const theme = getCategoryTheme(node.category);
+        const nodeRadius = node.level === 5 ? 24 : 16;
+        
+        // Create main container group
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("class", "interactive-node cursor-pointer");
+        g.setAttribute("transform", `translate(${node.x}, ${node.y})`);
+        g.setAttribute("opacity", opacity);
+        g.style.pointerEvents = "auto";
+        g.style.transition = "opacity 0.3s ease";
+
+        // Click interaction
+        g.onclick = (e) => {
+          e.stopPropagation();
+          focusOnNode(node);
+        };
+
+        // Invisible large safety trigger
+        const clickTrigger = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        clickTrigger.setAttribute("cx", "0");
+        clickTrigger.setAttribute("cy", "0");
+        clickTrigger.setAttribute("r", (nodeRadius + 24).toString());
+        clickTrigger.setAttribute("fill", "transparent");
+        g.appendChild(clickTrigger);
+
+        // Sonic pulse Ring if selected
+        if (isSelected || pulseNodeId === node.id) {
+          const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          ring.setAttribute("cx", "0");
+          ring.setAttribute("cy", "0");
+          ring.setAttribute("r", (nodeRadius + 15).toString());
+          ring.setAttribute("fill", "none");
+          ring.setAttribute("stroke", theme.color);
+          ring.setAttribute("class", "animate-target-pulse");
+          g.appendChild(ring);
+        }
+
+        // Mastery Level Ring outer dashes
+        const outerRing = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        outerRing.setAttribute("cx", "0");
+        outerRing.setAttribute("cy", "0");
+        outerRing.setAttribute("r", (nodeRadius + 6).toString());
+        outerRing.setAttribute("fill", "none");
+        outerRing.setAttribute("stroke", theme.color);
+        outerRing.setAttribute("stroke-width", node.level === 5 ? "2.5" : "1");
+        outerRing.setAttribute("opacity", isSelected ? "1.0" : "0.6");
+        
+        // Dashed styling representing levels
+        if (node.level === 4) outerRing.setAttribute("stroke-dasharray", "8, 3");
+        else if (node.level === 3) outerRing.setAttribute("stroke-dasharray", "5, 3");
+        else if (node.level === 2) outerRing.setAttribute("stroke-dasharray", "3, 3");
+        else if (node.level === 1) outerRing.setAttribute("stroke-dasharray", "1, 4");
+        
+        g.appendChild(outerRing);
+
+        // Tiny indicator dots on the ring for level markers
+        if (node.level < 5) {
+          for (let i = 0; i < node.level; i++) {
+            const angle = (i * 360) / node.level - 90;
+            const rad = (angle * Math.PI) / 180;
+            const px = (nodeRadius + 6) * Math.cos(rad);
+            const py = (nodeRadius + 6) * Math.sin(rad);
+            
+            const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            dot.setAttribute("cx", px.toString());
+            dot.setAttribute("cy", py.toString());
+            dot.setAttribute("r", "2");
+            dot.setAttribute("fill", theme.color);
+            dot.setAttribute("opacity", "0.8");
+            g.appendChild(dot);
+          }
+        }
+
+        // Central Circle
+        const centralCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        centralCircle.setAttribute("cx", "0");
+        centralCircle.setAttribute("cy", "0");
+        centralCircle.setAttribute("r", nodeRadius.toString());
+        centralCircle.setAttribute("fill", isSelected ? theme.color : "#0f172a");
+        centralCircle.setAttribute("stroke", theme.color);
+        centralCircle.setAttribute("stroke-width", isSelected ? "4" : "2.5");
+        if (node.level === 5) {
+          centralCircle.setAttribute("filter", "url(#master-glow)");
+        }
+        g.appendChild(centralCircle);
+
+        // Star or level text inside
+        const textSymbol = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textSymbol.setAttribute("x", "0");
+        textSymbol.setAttribute("y", "4.5");
+        textSymbol.setAttribute("text-anchor", "middle");
+        textSymbol.setAttribute("class", `text-[10px] font-mono font-black select-none ${isSelected ? 'fill-slate-950' : 'fill-slate-300'}`);
+        textSymbol.textContent = node.level === 5 ? "✦" : node.level;
+        g.appendChild(textSymbol);
+
+        // Title text underneath
+        const textTitle = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textTitle.setAttribute("x", "0");
+        textTitle.setAttribute("y", (nodeRadius + 20).toString());
+        textTitle.setAttribute("text-anchor", "middle");
+        textTitle.setAttribute("class", `text-[11px] font-bold select-none ${isSelected ? 'fill-slate-100 font-extrabold' : 'fill-slate-300'}`);
+        textTitle.textContent = node.title;
+        g.appendChild(textTitle);
+
+        // Subtitle
+        const textSub = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textSub.setAttribute("x", "0");
+        textSub.setAttribute("y", (nodeRadius + 32).toString());
+        textSub.setAttribute("text-anchor", "middle");
+        textSub.setAttribute("class", "text-[9px] font-mono fill-slate-500 uppercase tracking-widest select-none");
+        textSub.textContent = `NIVEL ${node.level}`;
+        g.appendChild(textSub);
+
+        // Append node to SVG
+        nodesGroup.appendChild(g);
+      });
+    }
+
+    // ================= SIDE PANEL INJECTION & TRANSITIONS =================
+    function openDrawer(node) {
+      const theme = getCategoryTheme(node.category);
+      
+      // Set categories styling
+      const categoryEl = document.getElementById('drawer-category');
+      categoryEl.textContent = node.categoryLabel;
+      categoryEl.className = `text-[10px] font-mono font-bold tracking-widest uppercase px-2.5 py-0.5 rounded-full border ${theme.bg} ${theme.text} ${theme.border}`;
+      
+      document.getElementById('drawer-levelname').textContent = node.levelName;
+      document.getElementById('drawer-title').textContent = node.title;
+      document.getElementById('drawer-summary').textContent = `"${node.summary}"`;
+      
+      // Update Progress Text & Progression Bars
+      document.getElementById('drawer-progress-text').textContent = `Nivel ${node.level} de 5`;
+      const progressContainer = document.getElementById('drawer-progress-bar');
+      progressContainer.innerHTML = '';
+      
+      for(let i = 0; i < 5; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'flex-1 h-2 rounded transition-all duration-300';
+        if (i < node.level) {
+          bar.style.backgroundColor = theme.color;
+          if (node.level === 5) {
+            bar.style.boxShadow = `0 0 10px ${theme.color}`;
+          }
+        } else {
+          bar.style.backgroundColor = '#1e293b';
+        }
+        progressContainer.appendChild(bar);
+      }
+
+      // Fill in content blocks
+      document.getElementById('drawer-in-onepiece').textContent = node.inOnePiece;
+      document.getElementById('drawer-in-realworld').textContent = node.inRealWorld;
+      document.getElementById('drawer-critical-note').textContent = node.criticalNote;
+
+      // Evidence Lists
+      const evidencesContainer = document.getElementById('drawer-evidences');
+      evidencesContainer.innerHTML = '';
+      node.evidence.forEach(ev => {
+        const li = document.createElement('li');
+        li.className = 'flex items-start gap-2.5 text-xs text-slate-300 leading-relaxed';
+        li.innerHTML = `
+          <span class="p-0.5 bg-emerald-950 text-emerald-400 rounded-full border border-emerald-900 mt-0.5">
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="flex-shrink-0"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <span>${ev}</span>
+        `;
+        evidencesContainer.appendChild(li);
+      });
+
+      // Cross Connections
+      const connectionsContainer = document.getElementById('drawer-connections');
+      connectionsContainer.innerHTML = '';
+      if (node.crossConnections.length > 0) {
+        node.crossConnections.forEach(conn => {
+          const targetNode = nodesData.find(n => n.id === conn.id);
+          const button = document.createElement('button');
+          button.className = 'w-full text-left p-3 rounded bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-between gap-3 group transition-all duration-200 cursor-pointer';
+          
+          const targetTheme = targetNode ? getCategoryTheme(targetNode.category) : { color: '#a78bfa' };
+          button.innerHTML = `
+            <div class="space-y-0.5">
+              <div class="text-xs font-bold text-slate-200 group-hover:text-slate-100 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full" style="background-color: ${targetTheme.color}"></span>
+                ${conn.label}
+              </div>
+              <div class="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Isla Destino: ${conn.family}</div>
+            </div>
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500 group-hover:text-slate-300 transition-transform group-hover:translate-x-1"><polyline points="9 18 15 12 9 6"/></svg>
+          `;
+          
+          if (targetNode) {
+            button.onclick = () => focusOnNode(targetNode);
+          } else {
+            button.setAttribute('disabled', 'true');
+            button.className += ' opacity-50 cursor-not-allowed';
+          }
+          connectionsContainer.appendChild(button);
+        });
+      } else {
+        connectionsContainer.innerHTML = `<p class="text-[11px] font-mono text-slate-500 italic">No se registran conexiones cruzadas de nivel inferior para este nodo.</p>`;
+      }
+
+      // Tags Pillbox
+      const tagsContainer = document.getElementById('drawer-tags');
+      tagsContainer.innerHTML = '';
+      node.tags.forEach(tag => {
+        const pill = document.createElement('span');
+        pill.className = 'flex items-center gap-1 text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-2.5 py-1 rounded';
+        pill.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-500"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          ${tag}
+        `;
+        tagsContainer.appendChild(pill);
+      });
+
+      // Slide drawer in
+      sideDrawer.classList.remove('translate-x-full');
+    }
+
+    function closeDrawer() {
+      sideDrawer.classList.add('translate-x-full');
+      selectedNode = null;
+      renderNodes();
+    }
+
+    // Drawer buttons callbacks
+    document.getElementById('btn-close-drawer').onclick = closeDrawer;
+    document.getElementById('btn-close-cross').onclick = closeDrawer;
+
+    // ================= MAP HUD CONTROLS =================
+    function zoomIn() {
+      scale = Math.min(3.0, scale * 1.25);
+      updateTransform();
+    }
+    function zoomOut() {
+      scale = Math.max(0.15, scale / 1.25);
+      updateTransform();
+    }
+    function resetView() {
+      scale = 0.7;
+      translateX = 220;
+      translateY = 140;
+      updateTransform();
+    }
+    function fitToScreen() {
+      const cw = mapContainer.clientWidth;
+      const ch = mapContainer.clientHeight;
+      const discountX = window.innerWidth >= 768 ? 150 : 0;
+      
+      // Calculate fit scales
+      const scaleX = cw / 1600;
+      const scaleY = ch / 1000;
+      scale = Math.min(scaleX, scaleY) * 0.95;
+      
+      // Center
+      translateX = (cw - discountX - (1600 * scale)) / 2;
+      translateY = (ch - (1000 * scale)) / 2;
+      updateTransform();
+    }
+
+    document.getElementById('btn-zoom-in').onclick = zoomIn;
+    document.getElementById('btn-zoom-out').onclick = zoomOut;
+    document.getElementById('btn-reset').onclick = resetView;
+    document.getElementById('btn-fit').onclick = fitToScreen;
+
+    // ================= EVENT FILTER LISTENERS =================
+    searchInput.oninput = renderNodes;
+    categoryFilter.onchange = renderNodes;
+    levelFilter.onchange = renderNodes;
+
+    // ================= HELP MODAL LOGIC =================
+    document.getElementById('btn-help').onclick = () => helpModal.style.display = 'flex';
+    document.getElementById('btn-close-modal').onclick = () => helpModal.style.display = 'none';
+    document.getElementById('btn-start').onclick = () => helpModal.style.display = 'none';
+
+    // Click outside to close drawer
+    mapContainer.addEventListener('click', (e) => {
+      if (!sideDrawer.classList.contains('translate-x-full') && !e.target.closest('#side-drawer')) {
+        closeDrawer();
+      }
+    });
+
+    // Run on mount
+    updateTransform();
+    renderNodes();
+    
+    // Fit screen initially
+    setTimeout(fitToScreen, 150);
+  </script>
+</body>
+</html>
