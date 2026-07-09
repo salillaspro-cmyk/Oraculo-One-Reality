@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Ohara scholar/archaeologist profile and course progress",
+      "type": "object",
+      "properties": {
+        "username": {
+          "type": "string",
+          "description": "Display name of the user"
+        },
+        "avatar": {
+          "type": "string",
+          "description": "Avatar ID selected by the user"
+        },
+        "mode": {
+          "type": "string",
+          "description": "User mode: novice, intermediate, expert"
+        },
+        "currentChapterId": {
+          "type": "string",
+          "description": "ID of the current active chapter"
+        },
+        "completedChapters": {
+          "type": "array",
+          "description": "List of completed chapter IDs"
+        },
+        "quizScores": {
+          "type": "object",
+          "description": "Scores achieved in various quizzes"
+        },
+        "placementScore": {
+          "type": "number",
+          "description": "Score of the initial placement test"
+        },
+        "pirateCertified": {
+          "type": "boolean",
+          "description": "Whether the user is certified as a pirate"
+        },
+        "archaeologistCertified": {
+          "type": "boolean",
+          "description": "Whether the user is certified as an archaeologist"
+        },
+        "restorationPoints": {
+          "type": "number",
+          "description": "Points earned through map restoration tasks"
+        },
+        "discoveredTreasures": {
+          "type": "array",
+          "description": "List of IDs of treasures discovered on the map"
+        }
+      },
+      "required": [
+        "username",
+        "avatar",
+        "mode",
+        "currentChapterId",
+        "completedChapters",
+        "quizScores",
+        "restorationPoints",
+        "discoveredTreasures"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile and progress document"
+    }
+  }
+}
