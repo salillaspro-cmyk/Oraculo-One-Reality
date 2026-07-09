@@ -158,6 +158,8 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
       console.error("Error during Google Sign-In:", err);
       if (err.code === "auth/popup-blocked") {
         setErrorMessage("El navegador bloqueó la ventana emergente de Google. Por favor, permite las ventanas emergentes en tu navegador para iniciar sesión.");
+      } else if (err.code === "auth/operation-not-allowed") {
+        setErrorMessage("⚠️ El proveedor de inicio de sesión de Google no está activado en tu consola de Firebase. Por favor, ve a Firebase Console > Authentication > Sign-in method y activa 'Google'.");
       } else {
         setErrorMessage(`No se pudo conectar con Google: ${err.message || err}`);
       }
@@ -235,6 +237,8 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
         setErrorMessage("El formato de correo electrónico no es válido.");
       } else if (err.code === "auth/weak-password") {
         setErrorMessage("La clave secreta es muy débil.");
+      } else if (err.code === "auth/operation-not-allowed") {
+        setErrorMessage("⚠️ El proveedor de Correo/Contraseña no está activado en tu consola de Firebase. Por favor, ve a Firebase Console > Authentication > Sign-in method y activa 'Correo electrónico/Contraseña'.");
       } else {
         setErrorMessage(`Error al crear la cuenta: ${err.message || err}`);
       }
@@ -302,6 +306,8 @@ export default function ArchaeologistPortal({ userProgress, onClose, onSaveProgr
         setErrorMessage("Credenciales incorrectas. Comprueba tu dirección de correo y clave.");
       } else if (err.code === "auth/too-many-requests") {
         setErrorMessage("Demasiados intentos de acceso fallidos. Por favor, inténtalo de nuevo más tarde.");
+      } else if (err.code === "auth/operation-not-allowed") {
+        setErrorMessage("⚠️ El proveedor de Correo/Contraseña no está activado en tu consola de Firebase. Por favor, ve a Firebase Console > Authentication > Sign-in method y activa 'Correo electrónico/Contraseña'.");
       } else {
         setErrorMessage(`Error de conexión con Ohara: ${err.message || err}`);
       }
